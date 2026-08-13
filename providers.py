@@ -547,32 +547,54 @@ class FetcherEngine:
 
     def run_earnings_sweep(self) -> Dict[str, Any]:
         """Dedicated trigger for Earnings & Future Reporting Intelligence Sweep."""
+        start_ts = datetime.datetime.now().strftime("%H:%M:%S")
         portfolio = self.db.get_portfolio()
         uas = self.config.get("user_agents", DEFAULT_CONFIG["user_agents"])
         recency = self.config.get("recency_window", "7d")
-        s_date = self.config.get("custom_start_date", "")
-        e_date = self.config.get("custom_end_date", "")
 
-        earnings_keywords = [
-            "conference call scheduled", "to report Q", "announces date for",
-            "quarterly results", "reports Q", "NAV per share", "NII per share",
-            "earnings release", "financial results"
-        ]
+        logger.info("📅 Starting Dedicated Earnings & Future Reporting Sweep for %d portfolio entities...", len(portfolio))
 
         total_sourced = 0
         total_events_saved = 0
 
+        # Step 1: Parse existing ingested headlines in DB
+        try:
+            from intelligence import DeterministicEarningsParser
+            all_db_headlines = self.db._conn().execute("SELECT headline, source, url, company FROM headlines").fetchall()
+            for row in all_db_headlines:
+                h_text = row["headline"]
+                c_name = row["company"] or "General"
+                h_url = row["url"] or ""
+                ev = DeterministicEarningsParser.detect_future_earnings(h_text, company=c_name, url=h_url)
+                if ev and self.db.save_earnings_calendar(ev):
+                    total_events_saved += 1
+                met = DeterministicEarningsParser.extract_quarterly_metrics(h_text, company=c_name, url=h_url)
+                if met and self.db.save_earnings_results(met):
+                    total_events_saved += 1
+        except Exception as e:
+            logger.debug("DB headline parse error: %s", e)
+
+        # Step 2: Live multi-provider search for earnings releases
         for comp in portfolio:
             company_name = comp["company"]
             ticker = comp.get("ticker", "")
             aliases = comp.get("aliases", [company_name])
 
-            # Build targeted Google query for earnings announcements
-            q_earn = QueryBuilder.build_google(company_name, aliases, earnings_keywords, [], recency, ticker=ticker, start_date=s_date, end_date=e_date)
-            items = self.google.fetch(q_earn, uas)
-            total_sourced += len(items)
+            # Query 1: Google News search for earnings releases
+            q_g = f'("{company_name}" OR "{ticker}") AND ("earnings release" OR "conference call" OR "financial results")'
+            logger.info("🔍 [Google News] Searching Earnings: %s", q_g)
+            items_g = self.google.fetch(q_g, uas)
+            total_sourced += len(items_g)
 
-            for it in items:
+            # Query 2: Bing News search for results announcements
+            q_b = f'("{company_name}" OR "{ticker}") AND ("announces results" OR "reports quarter" OR "NAV per share")'
+            logger.info("🔍 [Bing News] Searching Earnings: %s", q_b)
+            items_b = self.bing.fetch(q_b, uas)
+            total_sourced += len(items_b)
+
+            all_items = items_g + items_b
+
+            for it in all_items:
                 try:
                     from intelligence import DeterministicEarningsParser
                     ev = DeterministicEarningsParser.detect_future_earnings(it["title"], company=company_name, url=it["link"])
@@ -583,6 +605,9 @@ class FetcherEngine:
                         total_events_saved += 1
                 except Exception:
                     pass
+
+        end_ts = datetime.datetime.now().strftime("%H:%M:%S")
+        logger.info("✅ Earnings Sweep Complete [%s ➔ %s]: %d items sourced | %d events saved.", start_ts, end_ts, total_sourced, total_events_saved)
 
         return {
             "total_sourced": total_sourced,
