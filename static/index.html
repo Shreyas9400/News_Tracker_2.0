@@ -1582,12 +1582,13 @@ function toggleAllAccordionSections() {
 }
 
 // =========================================================================
-// GLOBAL STATE
+// GLOBAL STATE & CACHING
 // =========================================================================
 const API = '';
 let currentSort = { key: 'published_time', asc: false };
 let newsData = { items: [], total: 0, page: 1, pages: 1 };
 let portfolioData = [];
+let industriesData = [];
 let queryCategoriesData = [];
 let visibilityData = [];
 let appSettings = {};
@@ -1595,6 +1596,19 @@ let activeTaxonomyCategory = 'All';
 let currentNewsFilterType = 'All';
 let currentPage = 1;
 let debounceTimer = null;
+
+// Lazy Loader & In-Memory Cache for Master Industries
+async function getCachedIndustries(forceRefresh = false) {
+  if (forceRefresh || !industriesData || !industriesData.length) {
+    try {
+      industriesData = await api('/api/industries') || [];
+    } catch(e) {
+      console.error('Error fetching industries:', e);
+      industriesData = [];
+    }
+  }
+  return industriesData;
+}
 
 // =========================================================================
 // AUDIO ENGINE & ALERT SOUND
@@ -2117,13 +2131,16 @@ async function triggerEarningsSweep() {
 // PORTFOLIO MANAGEMENT
 // =========================================================================
 async function loadPortfolio() {
-  portfolioData = await api('/api/portfolio');
-  const indList = await api('/api/industries');
+  const [pData, indList] = await Promise.all([
+    api('/api/portfolio'),
+    getCachedIndustries()
+  ]);
+  portfolioData = pData || [];
   
   // Populate Add Portfolio Industry select
   const pIndSel = document.getElementById('pIndustrySelect');
   if (pIndSel) {
-    pIndSel.innerHTML = '<option value="">-- Select Industry --</option>' + indList.map(i => `<option value="${esc(i.id)}" ${i.status==='INACTIVE'?'disabled':''}>${esc(i.name)} (${esc(i.id)})</option>`).join('');
+    pIndSel.innerHTML = '<option value="">-- Select Industry --</option>' + (indList||[]).map(i => `<option value="${esc(i.id)}" ${i.status==='INACTIVE'?'disabled':''}>${esc(i.name)} (${esc(i.id)})</option>`).join('');
   }
 
   const pBody = document.getElementById('portfolioBody');
@@ -2149,7 +2166,7 @@ async function loadPortfolio() {
   </tr>`).join('');
 }
 
-function openEditModal(id) {
+async function openEditModal(id) {
   const i = portfolioData.find(p => p.id === id);
   if (!i) return;
   document.getElementById('editPId').value = i.id;
@@ -2158,9 +2175,10 @@ function openEditModal(id) {
   document.getElementById('editPCountry').value = i.country || 'USA';
   document.getElementById('editPAliases').value = (i.aliases || []).join(', ');
 
+  const inds = await getCachedIndustries();
   const indSel = document.getElementById('editPIndustrySelect');
-  if (indSel && industriesData) {
-    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}" ${ind.id === i.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  if (indSel && inds) {
+    indSel.innerHTML = inds.map(ind => `<option value="${esc(ind.id)}" ${ind.id === i.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
   }
   document.getElementById('editPortfolioModal').style.display = 'flex';
 }
@@ -2299,7 +2317,7 @@ function onCatModalScopeChange() {
   if (compGrp) compGrp.style.display = (scope === 'COMPANY') ? 'block' : 'none';
 }
 
-function openAddCatModal() {
+async function openAddCatModal() {
   document.getElementById('catModalTitle').textContent = '📁 Add New Query Category Sweep';
   document.getElementById('catModalId').value = '';
   document.getElementById('catModalName').value = '';
@@ -2308,10 +2326,11 @@ function openAddCatModal() {
   document.getElementById('catModalDimension').value = 'Earnings / Cash Flow';
   document.getElementById('catModalKeywords').value = '';
 
+  const inds = await getCachedIndustries();
   // Populate industries & companies dropdowns
   const indSel = document.getElementById('catModalIndustrySelect');
-  if (indSel && industriesData) {
-    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}">${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  if (indSel && inds) {
+    indSel.innerHTML = inds.map(ind => `<option value="${esc(ind.id)}">${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
   }
   const compSel = document.getElementById('catModalCompanySelect');
   if (compSel && portfolioData) {
@@ -2322,7 +2341,7 @@ function openAddCatModal() {
   document.getElementById('categoryModal').style.display = 'flex';
 }
 
-function openEditCatModal(id) {
+async function openEditCatModal(id) {
   const c = queryCategoriesData.find(x => x.id === id);
   if (!c) return;
   document.getElementById('catModalTitle').textContent = `✏️ Edit Query Category (v${c.version||1})`;
@@ -2333,9 +2352,10 @@ function openEditCatModal(id) {
   document.getElementById('catModalDimension').value = c.target_dimension || 'Earnings / Cash Flow';
   document.getElementById('catModalKeywords').value = (c.keywords || []).join(', ');
 
+  const inds = await getCachedIndustries();
   const indSel = document.getElementById('catModalIndustrySelect');
-  if (indSel && industriesData) {
-    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}" ${ind.id === c.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  if (indSel && inds) {
+    indSel.innerHTML = inds.map(ind => `<option value="${esc(ind.id)}" ${ind.id === c.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
   }
   const compSel = document.getElementById('catModalCompanySelect');
   if (compSel && portfolioData) {
@@ -2496,7 +2516,7 @@ async function loadQueryInspector() {
 // INDUSTRIES MANAGEMENT
 // =========================================================================
 async function loadIndustries() {
-  industriesData = await api('/api/industries');
+  industriesData = await getCachedIndustries(true);
   const tbody = document.getElementById('industryBody');
   if (!tbody) return;
 
@@ -2564,6 +2584,7 @@ async function saveAddIndustry() {
     alert(res.message || 'Error adding industry');
     return;
   }
+  await getCachedIndustries(true);
   closeAddIndustryModal();
   loadIndustries();
   loadPortfolio();
@@ -2586,6 +2607,7 @@ async function saveRenameIndustry() {
   if (!newName) return;
 
   await api(`/api/industries/${encodeURIComponent(id)}/rename`, 'POST', { name: newName });
+  await getCachedIndustries(true);
   closeRenameIndustryModal();
   loadIndustries();
   loadPortfolio();
@@ -2593,6 +2615,7 @@ async function saveRenameIndustry() {
 
 async function toggleIndustryStatus(id) {
   await api(`/api/industries/${encodeURIComponent(id)}/status`, 'POST', {});
+  await getCachedIndustries(true);
   loadIndustries();
   loadPortfolio();
 }
@@ -2604,6 +2627,7 @@ async function deleteIndustry(id) {
     alert(res.message || 'Cannot delete industry.');
     return;
   }
+  await getCachedIndustries(true);
   loadIndustries();
   loadPortfolio();
 }
@@ -2778,7 +2802,10 @@ setInterval(() => {
 }, 30000);
 
 // Initial load
-loadDashboard();
+Promise.all([
+  loadDashboard(),
+  getCachedIndustries()
+]);
 </script>
 </body>
 </html>
