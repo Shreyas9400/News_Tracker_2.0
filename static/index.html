@@ -647,13 +647,43 @@ a.headline-link:hover { color: var(--accent-blue); }
     </div>
 
     <h3 style="font-size:14px;color:var(--accent-blue);margin:16px 0 10px;">📅 Upcoming Reporting Calendar &amp; Webcasts</h3>
-    <div id="earningsCalendarGrid" class="cards" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
-      <div class="empty-state">Loading earnings calendar...</div>
+    <div class="table-wrap" style="margin-bottom:28px;">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:20%;">Company Entity</th>
+            <th style="width:10%;">Quarter</th>
+            <th style="width:18%;">Reporting Date &amp; Time</th>
+            <th style="width:15%;">Status &amp; Countdown</th>
+            <th style="width:27%;">Source Provenance / Announcement Headline</th>
+            <th style="width:10%;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="earningsCalendarTableBody">
+          <tr><td colspan="6" class="empty-state">Loading earnings calendar...</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 10px;">📊 Quarterly Financial Metrics &amp; Period-over-Period Deltas</h3>
-    <div id="earningsResultsGrid" class="cards" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
-      <div class="empty-state">Loading financial results...</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:20%;">Company Entity</th>
+            <th style="width:10%;">Quarter</th>
+            <th style="width:14%;">NAV / Book Value</th>
+            <th style="width:12%;">NII per Share</th>
+            <th style="width:12%;">Regular Dividend</th>
+            <th style="width:14%;">NII Coverage</th>
+            <th style="width:10%;">Non-Accruals</th>
+            <th style="width:8%;">Source</th>
+          </tr>
+        </thead>
+        <tbody id="earningsResultsTableBody">
+          <tr><td colspan="8" class="empty-state">Loading quarterly metrics...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -1503,78 +1533,63 @@ async function loadEarningsTab() {
   const selectedComp = compFilter ? compFilter.value : 'All';
   const selectedStatus = document.getElementById('earnStatusFilter') ? document.getElementById('earnStatusFilter').value : 'All';
 
-  // Load Calendar
+  // Load Calendar List View Table
   const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}`);
-  const calGrid = document.getElementById('earningsCalendarGrid');
+  const calBody = document.getElementById('earningsCalendarTableBody');
 
   if (!calendarEvents || calendarEvents.length === 0) {
-    calGrid.innerHTML = '<div class="empty-state">No earnings events found. Trigger a search or ingest press releases.</div>';
+    calBody.innerHTML = '<tr><td colspan="6" class="empty-state">No earnings events found. Click "Trigger Earnings Sweep" to ingest.</td></tr>';
   } else {
-    calGrid.innerHTML = calendarEvents.map(ev => {
+    calBody.innerHTML = calendarEvents.map(ev => {
       let stColor = '#94a3b8', stBg = 'rgba(148,163,184,0.1)';
       if (ev.status === 'CONFIRMED') { stColor = '#34d399'; stBg = 'rgba(16,185,129,0.15)'; }
       else if (ev.status === 'ESTIMATED') { stColor = '#60a5fa'; stBg = 'rgba(59,130,246,0.15)'; }
       else if (ev.status === 'PENDING_REVIEW') { stColor = '#fbbf24'; stBg = 'rgba(251,191,36,0.15)'; }
 
-      const provHtml = ev.source_url ? `<a href="${esc(ev.source_url)}" target="_blank" style="color:var(--accent-blue);font-size:11px;text-decoration:none;">🔗 Source Provenance</a>` : `<span style="font-size:11px;color:var(--text-muted);">${esc(ev.date_source || 'HISTORICAL')}</span>`;
+      const targetUrl = ev.source_url || (ev.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(ev.source_headline)}` : null);
+      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--accent-blue);">🔗 ${esc(ev.source_headline || 'Press Release Provenance')}</a>` : `<span style="color:var(--text-muted);">${esc(ev.source_headline || 'Announced Reporting Window')}</span>`;
 
       return `
-        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--shadow-sm);">
-          <div>
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <span style="font-size:14px;font-weight:700;color:var(--text-primary);">${esc(ev.company_name)}</span>
-              <span style="background:${stBg};color:${stColor};padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;">${esc(ev.status)}</span>
-            </div>
-            <div style="font-size:12px;color:var(--accent-blue);font-weight:600;margin-bottom:6px;">${esc(ev.quarter)} | ${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</div>
-            <div style="font-size:13px;font-weight:700;color:var(--accent-green);margin-bottom:10px;">${esc(ev.countdown)}</div>
-            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Headline: "${esc(ev.source_headline || 'Announced Reporting Window')}"</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);">
-            ${provHtml}
-            ${ev.webcast_url ? `<a href="${esc(ev.webcast_url)}" target="_blank" class="btn btn-primary" style="padding:3px 8px;font-size:11px;">🎙️ Call Webcast</a>` : ''}
-          </div>
-        </div>
+        <tr>
+          <td><strong style="color:var(--text-primary);">${esc(ev.company_name)}</strong></td>
+          <td><span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(ev.quarter)}</span></td>
+          <td style="font-weight:600;color:var(--accent-blue);">${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</td>
+          <td>
+            <span style="background:${stBg};color:${stColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-right:6px;">${esc(ev.status)}</span>
+            <span style="font-size:11px;font-weight:700;color:var(--accent-green);">${esc(ev.countdown)}</span>
+          </td>
+          <td style="font-size:11.5px;max-width:320px;white-space:normal;">${provHtml}</td>
+          <td>${ev.webcast_url ? `<a href="${esc(ev.webcast_url)}" target="_blank" class="btn btn-primary" style="padding:2px 6px;font-size:10.5px;">🎙️ Webcast</a>` : '<span style="color:var(--text-muted);font-size:11px;">-</span>'}</td>
+        </tr>
       `;
     }).join('');
   }
 
-  // Load Financial Results
+  // Load Financial Results List View Table
   const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}`);
-  const resGrid = document.getElementById('earningsResultsGrid');
+  const resBody = document.getElementById('earningsResultsTableBody');
 
   if (!results || results.length === 0) {
-    resGrid.innerHTML = '<div class="empty-state">No financial metrics recorded yet.</div>';
+    resBody.innerHTML = '<tr><td colspan="8" class="empty-state">No financial metrics recorded yet. Trigger an earnings sweep to extract numbers.</td></tr>';
   } else {
-    resGrid.innerHTML = results.map(r => {
-      const navChange = r.nav_change_pct !== null ? (r.nav_change_pct >= 0 ? `<span style="color:#34d399;">(▲ ${r.nav_change_pct}%)</span>` : `<span style="color:#f87171;">(▼ ${r.nav_change_pct}%) 🔴</span>`) : '';
+    resBody.innerHTML = results.map(r => {
+      const navChange = r.nav_change_pct !== null ? (r.nav_change_pct >= 0 ? `<span style="color:#34d399;font-weight:700;">(▲ ${r.nav_change_pct}%)</span>` : `<span style="color:#f87171;font-weight:700;">(▼ ${r.nav_change_pct}%) 🔴</span>`) : '';
       const covBadge = r.nii_coverage_pct !== null ? (r.nii_coverage_pct >= 100 ? `<span style="color:#34d399;font-weight:700;">${r.nii_coverage_pct}% Covered</span>` : `<span style="color:#f87171;font-weight:700;">${r.nii_coverage_pct}% Uncovered ⚠️</span>`) : 'N/A';
 
+      const targetUrl = r.source_url || (r.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(r.source_headline)}` : null);
+      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--accent-blue);">🔗 Source</a>` : '-';
+
       return `
-        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;box-shadow:var(--shadow-sm);">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-            <span style="font-size:14px;font-weight:700;color:var(--text-primary);">${esc(r.company_name)}</span>
-            <span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;">${esc(r.quarter)}</span>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px;">
-            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
-              <div style="color:var(--text-muted);font-size:10px;">NAV / BOOK VALUE</div>
-              <div style="font-weight:700;color:var(--text-primary);">${r.nav_per_share ? '$' + r.nav_per_share.toFixed(2) : 'N/A'} ${navChange}</div>
-            </div>
-            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
-              <div style="color:var(--text-muted);font-size:10px;">NII COVERAGE</div>
-              <div style="font-weight:700;">${covBadge}</div>
-            </div>
-            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
-              <div style="color:var(--text-muted);font-size:10px;">NII PER SHARE</div>
-              <div style="font-weight:700;color:var(--text-primary);">${r.nii_per_share ? '$' + r.nii_per_share.toFixed(2) : 'N/A'}</div>
-            </div>
-            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
-              <div style="color:var(--text-muted);font-size:10px;">REGULAR DIVIDEND</div>
-              <div style="font-weight:700;color:var(--text-primary);">${r.dividend_regular ? '$' + r.dividend_regular.toFixed(2) : 'N/A'}</div>
-            </div>
-          </div>
-          ${r.non_accrual_pct !== null ? `<div style="font-size:11px;color:${r.non_accrual_pct > 2.0 ? '#f87171' : 'var(--text-secondary)'};">Non-Accrual Rate: <strong>${r.non_accrual_pct.toFixed(2)}%</strong> ${r.non_accrual_pct > 2.0 ? '⚠️ High Risk' : ''}</div>` : ''}
-        </div>
+        <tr>
+          <td><strong style="color:var(--text-primary);">${esc(r.company_name)}</strong></td>
+          <td><span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(r.quarter)}</span></td>
+          <td style="font-weight:700;">${r.nav_per_share ? '$' + r.nav_per_share.toFixed(2) : 'N/A'} ${navChange}</td>
+          <td style="font-weight:600;">${r.nii_per_share ? '$' + r.nii_per_share.toFixed(2) : 'N/A'}</td>
+          <td style="font-weight:600;">${r.dividend_regular ? '$' + r.dividend_regular.toFixed(2) : 'N/A'}</td>
+          <td>${covBadge}</td>
+          <td style="color:${r.non_accrual_pct > 2.0 ? '#f87171' : 'var(--text-secondary)'};">${r.non_accrual_pct !== null ? r.non_accrual_pct.toFixed(2) + '%' : 'N/A'}</td>
+          <td>${provHtml}</td>
+        </tr>
       `;
     }).join('');
   }

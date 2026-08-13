@@ -866,6 +866,15 @@ class DatabaseManager:
             if existing and existing["status"] == "CONFIRMED" and data.get("status") == "ESTIMATED":
                 return False
 
+            src_url = data.get("source_url", "")
+            src_head = data.get("source_headline", "")
+            if not src_url and src_head:
+                match = c.execute("SELECT url FROM headlines WHERE headline=?", (src_head,)).fetchone()
+                if match and match["url"]:
+                    src_url = match["url"]
+                elif src_head:
+                    src_url = f"https://www.google.com/search?q={urllib.parse.quote(src_head)}"
+
             c.execute("""
                 INSERT OR REPLACE INTO earnings_calendar(
                     company_name, ticker, quarter, reporting_date, conf_call_time,
@@ -878,7 +887,7 @@ class DatabaseManager:
                 data.get("reporting_date"), data.get("conf_call_time", ""),
                 data.get("timezone", "ET"), data.get("webcast_url", ""),
                 data.get("status", "ESTIMATED"), data.get("date_source", "HISTORICAL_PATTERN"),
-                data.get("source_url", ""), data.get("source_headline", ""),
+                src_url, src_head,
                 data.get("reporting_date_precision", "EXACT"),
                 data.get("reporting_time_precision", "UNKNOWN"),
                 data.get("confidence", 0.75),
@@ -902,6 +911,15 @@ class DatabaseManager:
     def save_earnings_results(self, data: Dict[str, Any]) -> bool:
         with self._write_lock:
             c = self._conn()
+            src_url = data.get("source_url", "")
+            src_head = data.get("source_headline", "")
+            if not src_url and src_head:
+                match = c.execute("SELECT url FROM headlines WHERE headline=?", (src_head,)).fetchone()
+                if match and match["url"]:
+                    src_url = match["url"]
+                elif src_head:
+                    src_url = f"https://www.google.com/search?q={urllib.parse.quote(src_head)}"
+
             c.execute("""
                 INSERT OR REPLACE INTO earnings_results(
                     company_name, quarter, nav_per_share, nav_prior, nii_per_share,
@@ -914,8 +932,7 @@ class DatabaseManager:
                 data.get("nii_per_share"), data.get("nii_prior"),
                 data.get("dividend_regular"), data.get("dividend_special"),
                 data.get("non_accrual_pct"), data.get("non_accrual_prior"),
-                data.get("reported_at"), data.get("source_url", ""),
-                data.get("source_headline", ""),
+                data.get("reported_at"), src_url, src_head,
             ))
             c.commit()
             return True
