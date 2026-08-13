@@ -359,6 +359,7 @@ a.headline-link:hover { color: var(--accent-blue); }
   <div class="nav-tab" id="tabNav-industries" onclick="showTab('industries')">🏭 Industries</div>
   <div class="nav-tab" id="tabNav-keywords" onclick="showTab('keywords')">🔑 Keywords</div>
   <div class="nav-tab" id="tabNav-domains" onclick="showTab('domains')">🌐 Domains</div>
+  <div class="nav-tab" id="tabNav-earnings" onclick="showTab('earnings')">📅 Earnings Tracker</div>
   <div class="nav-tab" id="tabNav-settings" onclick="showTab('settings')">⚙️ Settings</div>
 </div>
 
@@ -622,6 +623,39 @@ a.headline-link:hover { color: var(--accent-blue); }
     <div class="table-wrap"><table><thead><tr><th>Website</th><th>Visible</th><th></th></tr></thead><tbody id="visibilityBody"></tbody></table></div>
   </div>
 
+  <!-- ============ EARNINGS TRACKER TAB ============ -->
+  <div class="tab-content" id="tab-earnings" style="display:none;">
+    <div class="mgmt-header">
+      <h2>📅 Portfolio Earnings &amp; Future Reporting Intelligence</h2>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <select id="earnCompanyFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+          <option value="All">All Companies</option>
+        </select>
+        <select id="earnStatusFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+          <option value="All">All Statuses</option>
+          <option value="CONFIRMED">Confirmed</option>
+          <option value="ESTIMATED">Estimated</option>
+          <option value="PENDING_REVIEW">Pending Review</option>
+          <option value="REPORTED">Reported</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:16px;">
+      <strong>💡 Earnings &amp; Future Reporting Intelligence:</strong> Track upcoming quarterly earnings dates, conference call webcasts, and period-over-period credit metrics (NAV, NII coverage, Dividend payout, and Non-Accrual rates). Dates are extracted deterministically from press release announcements with full audit provenance.
+    </div>
+
+    <h3 style="font-size:14px;color:var(--accent-blue);margin:16px 0 10px;">📅 Upcoming Reporting Calendar &amp; Webcasts</h3>
+    <div id="earningsCalendarGrid" class="cards" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
+      <div class="empty-state">Loading earnings calendar...</div>
+    </div>
+
+    <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 10px;">📊 Quarterly Financial Metrics &amp; Period-over-Period Deltas</h3>
+    <div id="earningsResultsGrid" class="cards" style="grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap:14px;">
+      <div class="empty-state">Loading financial results...</div>
+    </div>
+  </div>
+
   <!-- ============ SETTINGS TAB ============ -->
   <div id="tab-settings" class="tab-content">
     <div class="mgmt-header"><h2>Application Settings</h2></div>
@@ -797,6 +831,7 @@ function showTab(name) {
   else if (name==='industries') loadIndustries();
   else if (name==='keywords') loadKeywords();
   else if (name==='domains') { loadDomains(); loadVisibility(); }
+  else if (name==='earnings') loadEarningsTab();
   else if (name==='settings') loadSettings();
 }
 
@@ -1456,6 +1491,93 @@ function openCreditModal(jsonStr) {
   } catch(e) { console.error(e); }
 }
 function closeCreditModal() { document.getElementById('creditRiskModal').style.display = 'none'; }
+
+async function loadEarningsTab() {
+  const compFilter = document.getElementById('earnCompanyFilter');
+  if (compFilter && compFilter.options.length <= 1) {
+    const comps = await api('/api/filters/companies');
+    compFilter.innerHTML = '<option value="All">All Companies</option>' + comps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  }
+
+  const selectedComp = compFilter ? compFilter.value : 'All';
+  const selectedStatus = document.getElementById('earnStatusFilter') ? document.getElementById('earnStatusFilter').value : 'All';
+
+  // Load Calendar
+  const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}`);
+  const calGrid = document.getElementById('earningsCalendarGrid');
+
+  if (!calendarEvents || calendarEvents.length === 0) {
+    calGrid.innerHTML = '<div class="empty-state">No earnings events found. Trigger a search or ingest press releases.</div>';
+  } else {
+    calGrid.innerHTML = calendarEvents.map(ev => {
+      let stColor = '#94a3b8', stBg = 'rgba(148,163,184,0.1)';
+      if (ev.status === 'CONFIRMED') { stColor = '#34d399'; stBg = 'rgba(16,185,129,0.15)'; }
+      else if (ev.status === 'ESTIMATED') { stColor = '#60a5fa'; stBg = 'rgba(59,130,246,0.15)'; }
+      else if (ev.status === 'PENDING_REVIEW') { stColor = '#fbbf24'; stBg = 'rgba(251,191,36,0.15)'; }
+
+      const provHtml = ev.source_url ? `<a href="${esc(ev.source_url)}" target="_blank" style="color:var(--accent-blue);font-size:11px;text-decoration:none;">🔗 Source Provenance</a>` : `<span style="font-size:11px;color:var(--text-muted);">${esc(ev.date_source || 'HISTORICAL')}</span>`;
+
+      return `
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--shadow-sm);">
+          <div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <span style="font-size:14px;font-weight:700;color:var(--text-primary);">${esc(ev.company_name)}</span>
+              <span style="background:${stBg};color:${stColor};padding:3px 8px;border-radius:12px;font-size:10px;font-weight:700;">${esc(ev.status)}</span>
+            </div>
+            <div style="font-size:12px;color:var(--accent-blue);font-weight:600;margin-bottom:6px;">${esc(ev.quarter)} | ${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent-green);margin-bottom:10px;">${esc(ev.countdown)}</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Headline: "${esc(ev.source_headline || 'Announced Reporting Window')}"</div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);">
+            ${provHtml}
+            ${ev.webcast_url ? `<a href="${esc(ev.webcast_url)}" target="_blank" class="btn btn-primary" style="padding:3px 8px;font-size:11px;">🎙️ Call Webcast</a>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Load Financial Results
+  const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}`);
+  const resGrid = document.getElementById('earningsResultsGrid');
+
+  if (!results || results.length === 0) {
+    resGrid.innerHTML = '<div class="empty-state">No financial metrics recorded yet.</div>';
+  } else {
+    resGrid.innerHTML = results.map(r => {
+      const navChange = r.nav_change_pct !== null ? (r.nav_change_pct >= 0 ? `<span style="color:#34d399;">(▲ ${r.nav_change_pct}%)</span>` : `<span style="color:#f87171;">(▼ ${r.nav_change_pct}%) 🔴</span>`) : '';
+      const covBadge = r.nii_coverage_pct !== null ? (r.nii_coverage_pct >= 100 ? `<span style="color:#34d399;font-weight:700;">${r.nii_coverage_pct}% Covered</span>` : `<span style="color:#f87171;font-weight:700;">${r.nii_coverage_pct}% Uncovered ⚠️</span>`) : 'N/A';
+
+      return `
+        <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:16px;box-shadow:var(--shadow-sm);">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:14px;font-weight:700;color:var(--text-primary);">${esc(r.company_name)}</span>
+            <span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:700;">${esc(r.quarter)}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;margin-bottom:12px;">
+            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
+              <div style="color:var(--text-muted);font-size:10px;">NAV / BOOK VALUE</div>
+              <div style="font-weight:700;color:var(--text-primary);">${r.nav_per_share ? '$' + r.nav_per_share.toFixed(2) : 'N/A'} ${navChange}</div>
+            </div>
+            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
+              <div style="color:var(--text-muted);font-size:10px;">NII COVERAGE</div>
+              <div style="font-weight:700;">${covBadge}</div>
+            </div>
+            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
+              <div style="color:var(--text-muted);font-size:10px;">NII PER SHARE</div>
+              <div style="font-weight:700;color:var(--text-primary);">${r.nii_per_share ? '$' + r.nii_per_share.toFixed(2) : 'N/A'}</div>
+            </div>
+            <div style="background:var(--bg-card);padding:8px;border-radius:4px;border:1px solid var(--border);">
+              <div style="color:var(--text-muted);font-size:10px;">REGULAR DIVIDEND</div>
+              <div style="font-weight:700;color:var(--text-primary);">${r.dividend_regular ? '$' + r.dividend_regular.toFixed(2) : 'N/A'}</div>
+            </div>
+          </div>
+          ${r.non_accrual_pct !== null ? `<div style="font-size:11px;color:${r.non_accrual_pct > 2.0 ? '#f87171' : 'var(--text-secondary)'};">Non-Accrual Rate: <strong>${r.non_accrual_pct.toFixed(2)}%</strong> ${r.non_accrual_pct > 2.0 ? '⚠️ High Risk' : ''}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+}
 </script>
 
 <!-- CREDIT RISK MATRIX MODAL -->

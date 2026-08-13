@@ -195,6 +195,56 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif path == "/api/visibility":
             self._json(self.server.app_db.get_visibility())
 
+        elif path == "/api/earnings/calendar":
+            qs = urllib.parse.parse_qs(parsed.query)
+            comp = qs.get("company", ["All"])[0]
+            qtr = qs.get("quarter", ["All"])[0]
+            st = qs.get("status", ["All"])[0]
+            events = self.server.app_db.get_earnings_calendar(company=comp, quarter=qtr, status=st)
+
+            # Dynamic countdown calculation (calculated dynamically, never persisted)
+            now = datetime.datetime.now()
+            for ev in events:
+                r_date = ev.get("reporting_date")
+                if not r_date:
+                    ev["countdown"] = "TBD"
+                    continue
+                try:
+                    dt = datetime.datetime.strptime(r_date, "%Y-%m-%d")
+                    delta_days = (dt.date() - now.date()).days
+                    if delta_days == 0:
+                        ev["countdown"] = "REPORTING TODAY"
+                    elif delta_days > 0:
+                        ev["countdown"] = f"⏰ T-{delta_days} Days"
+                    else:
+                        ev["countdown"] = f"REPORTED ({abs(delta_days)}d ago)"
+                except Exception:
+                    ev["countdown"] = "TBD"
+            self._json(events)
+
+        elif path == "/api/earnings/results":
+            qs = urllib.parse.parse_qs(parsed.query)
+            comp = qs.get("company", ["All"])[0]
+            qtr = qs.get("quarter", ["All"])[0]
+            results = self.server.app_db.get_earnings_results(company=comp, quarter=qtr)
+
+            # Calculate NII coverage ratio & NAV deltas
+            for res in results:
+                nav_curr = res.get("nav_per_share")
+                nav_prior = res.get("nav_prior")
+                if nav_curr and nav_prior and nav_prior > 0:
+                    res["nav_change_pct"] = round(((nav_curr - nav_prior) / nav_prior) * 100.0, 2)
+                else:
+                    res["nav_change_pct"] = None
+
+                nii = res.get("nii_per_share")
+                div = res.get("dividend_regular")
+                if nii and div and div > 0:
+                    res["nii_coverage_pct"] = round((nii / div) * 100.0, 1)
+                else:
+                    res["nii_coverage_pct"] = None
+            self._json(results)
+
         elif path == "/api/settings":
             self._json(self.server.app_config)
 
@@ -316,6 +366,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif path == "/api/visibility/bulk_toggle":
             self.server.app_db.bulk_toggle_visibility(body.get("visible", 1))
             self._json({"ok": True})
+
+        elif path == "/api/earnings/calendar":
+            ok = self.server.app_db.save_earnings_calendar(body)
+            self._json({"ok": ok})
+
+        elif path == "/api/earnings/results":
+            ok = self.server.app_db.save_earnings_results(body)
+            self._json({"ok": ok})
 
         elif path.startswith("/api/visibility/") and path.endswith("/toggle"):
             vid = int(path.split("/")[3])

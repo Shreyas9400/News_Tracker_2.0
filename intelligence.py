@@ -677,8 +677,6 @@ class IntelEngine:
         s_sent = 5.0 if sentiment in ("Very Negative", "Very Positive") else (3.0 if sentiment in ("Negative", "Positive") else 1.0)
 
         # 7. Multi-Provider Bonus (0-5) — NEW
-        s_multi = min(5.0, (provider_count - 1) * 2.5) if provider_count > 1 else 0.0
-
         # Run Credit Risk Intelligence Engine
         matrix = CreditRiskIntelligenceEngine.analyze(headline, config=config)
 
@@ -693,6 +691,167 @@ class IntelEngine:
             "baseline_vader_score": matrix["baseline_vader_score"],
             "credit_risk_matrix": matrix,
         }
+
+# ---------------------------------------------------------------------------
+# 5. Deterministic Earnings & Future Reporting Parser
+# ---------------------------------------------------------------------------
+class DeterministicEarningsParser:
+    """CPU-only deterministic regex parser for earnings dates, times, and quarterly metrics."""
+
+    MONTH_MAP = {
+        'january': 1, 'jan': 1, 'february': 2, 'feb': 2, 'march': 3, 'mar': 3,
+        'april': 4, 'apr': 4, 'may': 5, 'june': 6, 'jun': 6, 'july': 7, 'jul': 7,
+        'august': 8, 'aug': 8, 'september': 9, 'sep': 9, 'sept': 9, 'october': 10, 'oct': 10,
+        'november': 11, 'nov': 11, 'december': 12, 'dec': 12
+    }
+
+    @classmethod
+    def detect_future_earnings(cls, headline: str, company: str = "General", url: str = "") -> Optional[Dict[str, Any]]:
+        h_lower = headline.lower()
+        if not any(w in h_lower for w in ["report", "results", "conference call", "announces", "earnings", "q1", "q2", "q3", "q4", "quarter"]):
+            return None
+
+        # 1. Detect Quarter
+        quarter = "Q2 2026"
+        q_match = re.search(r'\b(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)\b', h_lower)
+        y_match = re.search(r'\b(202[4-8])\b', h_lower)
+        curr_year = y_match.group(1) if y_match else str(datetime.datetime.now().year)
+
+        if q_match:
+            q_raw = q_match.group(1).lower()
+            if "first" in q_raw or "q1" in q_raw:
+                quarter = f"Q1 {curr_year}"
+            elif "second" in q_raw or "q2" in q_raw:
+                quarter = f"Q2 {curr_year}"
+            elif "third" in q_raw or "q3" in q_raw:
+                quarter = f"Q3 {curr_year}"
+            elif "fourth" in q_raw or "q4" in q_raw:
+                quarter = f"Q4 {curr_year}"
+
+        # 2. Detect Date
+        reporting_date = None
+        date_precision = "EXACT"
+
+        date_pattern = r'\b(january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sep|sept|october|oct|november|nov|december|dec)\s+(\d{1,2})(?:st|nd|rd|th)?(?:\s*,\s*(\d{4}))?\b'
+
+        # Check "week of August 17" first
+        w_match = re.search(r'week of\s+' + date_pattern, h_lower)
+        if w_match:
+            m_str, day_str, year_str = w_match.group(1), w_match.group(2), w_match.group(3)
+            month = cls.MONTH_MAP.get(m_str, 8)
+            year = int(year_str) if year_str else int(curr_year)
+            try:
+                reporting_date = f"{year:04d}-{month:02d}-{int(day_str):02d}"
+                date_precision = "WEEK"
+            except Exception:
+                pass
+
+        if not reporting_date:
+            d_match = re.search(date_pattern, h_lower)
+            if d_match:
+                m_str, day_str, year_str = d_match.group(1), d_match.group(2), d_match.group(3)
+                month = cls.MONTH_MAP.get(m_str, 8)
+                year = int(year_str) if year_str else int(curr_year)
+                day = int(day_str)
+                try:
+                    reporting_date = f"{year:04d}-{month:02d}-{day:02d}"
+                except Exception:
+                    pass
+
+        if not reporting_date:
+            return None
+
+        # 3. Detect Time & Precision
+        time_str = "10:00 AM"
+        time_precision = "UNKNOWN"
+
+        t_match = re.search(r'\b(\d{1,2}:?\d{0,2})\s*(a\.?m\.?|p\.?m\.?)\b', h_lower)
+        if t_match:
+            time_str = f"{t_match.group(1)} {t_match.group(2).upper().replace('.', '')}"
+            time_precision = "EXACT"
+        elif "before market open" in h_lower or "bmo" in h_lower:
+            time_str = "Before Market Open"
+            time_precision = "BEFORE_MARKET_OPEN"
+        elif "after close" in h_lower or "after market" in h_lower or "amc" in h_lower:
+            time_str = "After Market Close"
+            time_precision = "AFTER_MARKET_CLOSE"
+
+        status = "CONFIRMED" if date_precision == "EXACT" else "PENDING_REVIEW"
+
+        return {
+            "company_name": company,
+            "quarter": quarter,
+            "reporting_date": reporting_date,
+            "conf_call_time": time_str,
+            "timezone": "ET",
+            "webcast_url": url,
+            "status": status,
+            "date_source": "PRESS_RELEASE",
+            "source_url": url,
+            "source_headline": headline,
+            "reporting_date_precision": date_precision,
+            "reporting_time_precision": time_precision,
+            "confidence": 0.95 if status == "CONFIRMED" else 0.70,
+        }
+
+    @classmethod
+    def extract_quarterly_metrics(cls, headline: str, company: str = "General", url: str = "") -> Optional[Dict[str, Any]]:
+        h_lower = headline.lower()
+        if not any(w in h_lower for w in ["nav", "nii", "dividend", "net investment income", "book value", "per share"]):
+            return None
+
+        quarter = "Q2 2026"
+        q_match = re.search(r'\b(q[1-4]|first quarter|second quarter|third quarter|fourth quarter)\b', h_lower)
+        y_match = re.search(r'\b(202[4-8])\b', h_lower)
+        curr_year = y_match.group(1) if y_match else str(datetime.datetime.now().year)
+
+        if q_match:
+            q_raw = q_match.group(1).lower()
+            if "first" in q_raw or "q1" in q_raw:
+                quarter = f"Q1 {curr_year}"
+            elif "second" in q_raw or "q2" in q_raw:
+                quarter = f"Q2 {curr_year}"
+            elif "third" in q_raw or "q3" in q_raw:
+                quarter = f"Q3 {curr_year}"
+            elif "fourth" in q_raw or "q4" in q_raw:
+                quarter = f"Q4 {curr_year}"
+
+        nav = None
+        nav_m = re.search(r'\b(?:nav|book value)(?:\s+per\s+share)?\s*(?:of)?\s*\$(\d+\.\d{2})\b', h_lower)
+        if nav_m:
+            nav = float(nav_m.group(1))
+
+        nii = None
+        nii_m = re.search(r'\b(?:nii|net investment income)(?:\s+per\s+share)?\s*(?:of)?\s*\$(\d+\.\d{2})\b', h_lower)
+        if nii_m:
+            nii = float(nii_m.group(1))
+
+        div_reg = None
+        div_m = re.search(r'(?:\b(?:dividend|payout)(?:\s+of)?\s*\$(\d+\.\d{2})\b|\$(\d+\.\d{2})\s*(?:regular\s+)?(?:dividend|payout)\b)', h_lower)
+        if div_m:
+            div_reg = float(div_m.group(1) or div_m.group(2))
+
+        non_accrual = None
+        na_m = re.search(r'\bnon[- ]?accruals?\s*(?:of|at|rate)?\s*(\d+\.?\d*)%', h_lower)
+        if na_m:
+            non_accrual = float(na_m.group(1))
+
+        if not any([nav, nii, div_reg, non_accrual]):
+            return None
+
+        return {
+            "company_name": company,
+            "quarter": quarter,
+            "nav_per_share": nav,
+            "nii_per_share": nii,
+            "dividend_regular": div_reg,
+            "dividend_special": 0.0,
+            "non_accrual_pct": non_accrual,
+            "reported_at": datetime.date.today().strftime("%Y-%m-%d"),
+            "source_url": url,
+            "source_headline": headline,
+        }
+
 
 
 # ---------------------------------------------------------------------------

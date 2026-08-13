@@ -36,9 +36,17 @@ class DatabaseManager:
             conn = sqlite3.connect(self.db_path, timeout=30.0, isolation_level=None, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA busy_timeout=30000")
             self._local.conn = conn
         return conn
+
+    def close(self):
+        conn = getattr(self._local, "conn", None)
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
+            self._local.conn = None
 
     def _init_schema(self):
         c = self._conn()
@@ -108,6 +116,44 @@ class DatabaseManager:
                 id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 domain_name TEXT UNIQUE NOT NULL,
                 is_visible  INTEGER DEFAULT 1
+            );
+            CREATE TABLE IF NOT EXISTS earnings_calendar (
+                id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_name            TEXT NOT NULL,
+                ticker                  TEXT,
+                quarter                 TEXT NOT NULL,
+                reporting_date          DATE,
+                conf_call_time          TEXT,
+                timezone                TEXT DEFAULT 'ET',
+                webcast_url             TEXT,
+                status                  TEXT DEFAULT 'ESTIMATED',
+                date_source             TEXT DEFAULT 'HISTORICAL_PATTERN',
+                source_url              TEXT,
+                source_headline         TEXT,
+                reporting_date_precision TEXT DEFAULT 'EXACT',
+                reporting_time_precision TEXT DEFAULT 'UNKNOWN',
+                confidence              REAL DEFAULT 0.75,
+                created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(company_name, quarter)
+            );
+            CREATE TABLE IF NOT EXISTS earnings_results (
+                id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                company_name      TEXT NOT NULL,
+                quarter           TEXT NOT NULL,
+                nav_per_share     REAL,
+                nav_prior         REAL,
+                nii_per_share     REAL,
+                nii_prior         REAL,
+                dividend_regular  REAL,
+                dividend_special  REAL,
+                non_accrual_pct   REAL,
+                non_accrual_prior REAL,
+                reported_at       DATE,
+                source_url        TEXT,
+                source_headline   TEXT,
+                created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(company_name, quarter)
             );
         """)
 
@@ -790,3 +836,86 @@ class DatabaseManager:
     def get_distinct_domains(self) -> List[str]:
         rows = self._conn().execute("SELECT DISTINCT domain_name FROM headlines WHERE domain_name IS NOT NULL AND domain_name != '' ORDER BY domain_name").fetchall()
         return [r["domain_name"] for r in rows]
+
+    # -----------------------------------------------------------------------
+    # Earnings Tracker CRUD
+    # -----------------------------------------------------------------------
+    def get_earnings_calendar(self, company: str = None, quarter: str = None, status: str = None) -> List[Dict[str, Any]]:
+        sql = "SELECT * FROM earnings_calendar WHERE 1=1"
+        params = []
+        if company and company != "All":
+            sql += " AND company_name = ?"
+            params.append(company)
+        if quarter and quarter != "All":
+            sql += " AND quarter = ?"
+            params.append(quarter)
+        if status and status != "All":
+            sql += " AND status = ?"
+            params.append(status)
+        sql += " ORDER BY reporting_date ASC, company_name ASC"
+        rows = self._conn().execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def save_earnings_calendar(self, data: Dict[str, Any]) -> bool:
+        with self._write_lock:
+            c = self._conn()
+            existing = c.execute(
+                "SELECT status FROM earnings_calendar WHERE company_name=? AND quarter=?",
+                (data["company_name"], data["quarter"])
+            ).fetchone()
+            if existing and existing["status"] == "CONFIRMED" and data.get("status") == "ESTIMATED":
+                return False
+
+            c.execute("""
+                INSERT OR REPLACE INTO earnings_calendar(
+                    company_name, ticker, quarter, reporting_date, conf_call_time,
+                    timezone, webcast_url, status, date_source, source_url,
+                    source_headline, reporting_date_precision, reporting_time_precision,
+                    confidence, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            """, (
+                data["company_name"], data.get("ticker", ""), data["quarter"],
+                data.get("reporting_date"), data.get("conf_call_time", ""),
+                data.get("timezone", "ET"), data.get("webcast_url", ""),
+                data.get("status", "ESTIMATED"), data.get("date_source", "HISTORICAL_PATTERN"),
+                data.get("source_url", ""), data.get("source_headline", ""),
+                data.get("reporting_date_precision", "EXACT"),
+                data.get("reporting_time_precision", "UNKNOWN"),
+                data.get("confidence", 0.75),
+            ))
+            c.commit()
+            return True
+
+    def get_earnings_results(self, company: str = None, quarter: str = None) -> List[Dict[str, Any]]:
+        sql = "SELECT * FROM earnings_results WHERE 1=1"
+        params = []
+        if company and company != "All":
+            sql += " AND company_name = ?"
+            params.append(company)
+        if quarter and quarter != "All":
+            sql += " AND quarter = ?"
+            params.append(quarter)
+        sql += " ORDER BY quarter DESC, company_name ASC"
+        rows = self._conn().execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+    def save_earnings_results(self, data: Dict[str, Any]) -> bool:
+        with self._write_lock:
+            c = self._conn()
+            c.execute("""
+                INSERT OR REPLACE INTO earnings_results(
+                    company_name, quarter, nav_per_share, nav_prior, nii_per_share,
+                    nii_prior, dividend_regular, dividend_special, non_accrual_pct,
+                    non_accrual_prior, reported_at, source_url, source_headline
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                data["company_name"], data["quarter"],
+                data.get("nav_per_share"), data.get("nav_prior"),
+                data.get("nii_per_share"), data.get("nii_prior"),
+                data.get("dividend_regular"), data.get("dividend_special"),
+                data.get("non_accrual_pct"), data.get("non_accrual_prior"),
+                data.get("reported_at"), data.get("source_url", ""),
+                data.get("source_headline", ""),
+            ))
+            c.commit()
+            return True

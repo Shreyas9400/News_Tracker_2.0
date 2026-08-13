@@ -736,6 +736,18 @@ class FetcherEngine:
                     self.stats["saved"] += 1
                     self.stats["companies"][final_company]["saved"] += 1
                 self.q.put({"type": "NEW", "data": data})
+
+                # Deterministic Earnings Announcement & Metrics Parser
+                try:
+                    from intelligence import DeterministicEarningsParser
+                    earn_event = DeterministicEarningsParser.detect_future_earnings(it["title"], company=final_company, url=it["link"])
+                    if earn_event:
+                        self.db.save_earnings_calendar(earn_event)
+                    earn_metrics = DeterministicEarningsParser.extract_quarterly_metrics(it["title"], company=final_company, url=it["link"])
+                    if earn_metrics:
+                        self.db.save_earnings_results(earn_metrics)
+                except Exception:
+                    pass
             elif reason == "deduped":
                 if hasattr(self, "stats"):
                     self.stats["deduped"] += 1
