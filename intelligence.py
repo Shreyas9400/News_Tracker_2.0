@@ -638,8 +638,9 @@ class IntelEngine:
         # Fallback Industry match from text if company was not in portfolio
         if matched_industry == "General":
             for ind in industries:
-                if re.search(r"\b" + re.escape(ind.lower()) + r"\b", h):
-                    matched_industry = ind
+                ind_name = ind.get("name") if isinstance(ind, dict) else ind
+                if ind_name and isinstance(ind_name, str) and re.search(r"\b" + re.escape(ind_name.lower()) + r"\b", h):
+                    matched_industry = ind_name
                     break
 
         # --- Event Classification ---

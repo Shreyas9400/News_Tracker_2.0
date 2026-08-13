@@ -778,7 +778,7 @@ class FetcherEngine:
                   else "RSS Feeds")
 
         portfolio = self.db.get_portfolio()
-        industries = self.db.get_industries()
+        industries = self.db.get_distinct_industries()
         keywords = self.db.get_keywords()
         corpus_stats = self.db.get_corpus_stats()
         saved_count = 0
