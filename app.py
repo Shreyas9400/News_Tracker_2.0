@@ -125,32 +125,24 @@ class RequestHandler(BaseHTTPRequestHandler):
         # --- Query Inspector ---
         elif path == "/api/queries":
             portfolio = self.server.app_db.get_portfolio()
-            categories = self.server.app_db.get_query_categories()
+            categories = self.server.app_db.get_query_categories(enabled_only=False)
             domains = self.server.app_db.get_domains() if self.server.app_config.get("domain_filter_enabled") else []
             recency = self.server.app_config.get("recency_window", "7d")
             s_date = self.server.app_config.get("custom_start_date", "")
             e_date = self.server.app_config.get("custom_end_date", "")
             queries = []
+
             for comp in portfolio:
                 company = comp["company"]
                 ticker = comp.get("ticker", "")
                 aliases = comp.get("aliases", [company])
+                ind_id = comp.get("industry_id")
+                ind_name = comp.get("industry") or (ind_id or "General")
 
-                # Per-category queries (Google format)
-                cat_queries = []
-                for cat in categories:
-                    if not cat.get("enabled", True):
-                        continue
-                    cat_q = QueryBuilder.build_google(company, aliases, cat.get("keywords", []), domains, recency, ticker=ticker, start_date=s_date, end_date=e_date)
-                    bing_q = QueryBuilder.build_bing(company, aliases, cat.get("keywords", []), domains, ticker=ticker)
-                    ddg_q = QueryBuilder.build_duckduckgo(company, aliases, cat.get("keywords", []), ticker=ticker)
-                    cat_queries.append({
-                        "category_name": cat["name"],
-                        "query": cat_q,         # Google format (canonical)
-                        "bing_query": bing_q,
-                        "ddg_query": ddg_q,
-                        "keywords": cat.get("keywords", []),
-                    })
+                # Get applicable scoped queries with query-level deduplication
+                applicable_cat_queries = QueryBuilder.get_applicable_queries_for_company(
+                    comp, categories, domains=domains, recency=recency, start_date=s_date, end_date=e_date
+                )
 
                 broad_q = QueryBuilder.build_broad(company, aliases, domains, recency, ticker=ticker, start_date=s_date, end_date=e_date)
                 bing_broad = QueryBuilder.build_bing(company, aliases, [], ticker=ticker)
@@ -161,6 +153,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 queries.append({
                     "company": company,
                     "ticker": ticker,
+                    "industry": ind_name,
+                    "industry_id": ind_id,
                     "aliases": aliases,
                     "broad_query": broad_q,
                     "provider_queries": {
@@ -173,7 +167,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                         "bing": {"broad": bing_broad, "label": "Bing News RSS"},
                         "ddg": {"broad": ddg_broad, "label": "DuckDuckGo HTML"},
                     },
-                    "category_queries": cat_queries,
+                    "category_queries": applicable_cat_queries,
                 })
             self._json(queries)
 
@@ -255,7 +249,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json(self.server.app_db.get_distinct_companies())
 
         elif path == "/api/filters/industries":
-            self._json(self.server.app_db.get_industries())
+            self._json(self.server.app_db.get_distinct_industries())
 
         elif path == "/api/filters/domains":
             self._json(self.server.app_db.get_distinct_domains())
@@ -328,7 +322,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             ok = self.server.app_db.add_portfolio(
                 body.get("company", ""), body.get("ticker", ""),
                 body.get("industry", ""), body.get("country", ""),
-                body.get("aliases", []))
+                body.get("aliases", []), industry_id=body.get("industry_id"))
             self._json({"ok": ok})
 
         elif path.startswith("/api/portfolio/") and path.endswith("/update"):
@@ -336,7 +330,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             ok = self.server.app_db.update_portfolio(
                 pid, body.get("company", ""), body.get("ticker", ""),
                 body.get("industry", ""), body.get("country", ""),
-                body.get("aliases", []))
+                body.get("aliases", []), industry_id=body.get("industry_id"))
             self._json({"ok": ok})
 
         elif path == "/api/portfolio/bulk_toggle":
@@ -349,12 +343,29 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json({"ok": True})
 
         elif path == "/api/query_categories":
-            ok = self.server.app_db.add_query_category(body.get("name", ""), body.get("keywords", []))
+            ok = self.server.app_db.add_query_category(
+                name=body.get("name", ""),
+                keywords=body.get("keywords", []),
+                scope_type=body.get("scope_type", "UNIVERSAL"),
+                industry_id=body.get("industry_id"),
+                company_id=body.get("company_id"),
+                priority=int(body.get("priority", 70)),
+                target_dimension=body.get("target_dimension", "Earnings / Cash Flow")
+            )
             self._json({"ok": ok})
 
         elif path.startswith("/api/query_categories/") and path.endswith("/update"):
             qid = int(path.split("/")[3])
-            ok = self.server.app_db.update_query_category(qid, body.get("name", ""), body.get("keywords", []))
+            ok = self.server.app_db.update_query_category(
+                qid,
+                name=body.get("name", ""),
+                keywords=body.get("keywords", []),
+                scope_type=body.get("scope_type", "UNIVERSAL"),
+                industry_id=body.get("industry_id"),
+                company_id=body.get("company_id"),
+                priority=int(body.get("priority", 70)),
+                target_dimension=body.get("target_dimension", "Earnings / Cash Flow")
+            )
             self._json({"ok": ok})
 
         elif path.startswith("/api/query_categories/") and path.endswith("/toggle"):
@@ -384,13 +395,20 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json({"ok": True})
 
         elif path == "/api/industries":
-            ok = self.server.app_db.add_industry(body.get("name", ""))
+            ok, msg = self.server.app_db.add_industry(
+                body.get("id", ""), body.get("name", ""), body.get("risk_profile", "STANDARD_CORP")
+            )
+            self._json({"ok": ok, "message": msg})
+
+        elif path.startswith("/api/industries/") and path.endswith("/rename"):
+            iid = urllib.parse.unquote(path.split("/")[3])
+            ok = self.server.app_db.rename_industry(iid, body.get("name", ""))
             self._json({"ok": ok})
 
-        elif path.startswith("/api/industries/") and path.endswith("/toggle"):
-            iid = int(path.split("/")[3])
-            self.server.app_db.toggle_industry(iid, body.get("enabled", 1))
-            self._json({"ok": True})
+        elif path.startswith("/api/industries/") and (path.endswith("/toggle") or path.endswith("/status")):
+            iid = urllib.parse.unquote(path.split("/")[3])
+            ok = self.server.app_db.toggle_industry_status(iid, body.get("status"))
+            self._json({"ok": ok})
 
         elif path == "/api/keywords":
             ok = self.server.app_db.add_keyword(body.get("word", ""))
@@ -443,9 +461,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json({"ok": True})
 
         elif path.startswith("/api/industries/"):
-            iid = int(path.split("/")[3])
-            self.server.app_db.delete_industry(iid)
-            self._json({"ok": True})
+            iid = urllib.parse.unquote(path.split("/")[3])
+            ok, msg = self.server.app_db.delete_industry(iid)
+            self._json({"ok": ok, "message": msg})
 
         elif path.startswith("/api/keywords/"):
             kid = int(path.split("/")[3])

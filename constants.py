@@ -114,10 +114,38 @@ DEFAULT_PORTFOLIO = [
      "aliases": ["Morgan Stanley", "MS"]},
 ]
 
+# ---------------------------------------------------------------------------
+# Canonical Risk & Financial Intelligence Dimensions (Universal Framework)
+# ---------------------------------------------------------------------------
+RISK_INTELLIGENCE_DIMENSIONS = [
+    "Earnings / Cash Flow",
+    "Leverage / Capital",
+    "Liquidity",
+    "Asset Quality / Asset Base",
+    "Governance / Legal",
+    "Market / Regulatory",
+    "Rating / External Credit Signal",
+]
+
+# ---------------------------------------------------------------------------
+# Master Industry Catalog (Stable IDs & Risk Profile Templates)
+# ---------------------------------------------------------------------------
 DEFAULT_INDUSTRIES = [
-    "US Banks", "Commercial Banking", "Regional Banks", "Insurance",
-    "Asset Management", "Financial Services", "Real Estate", "Airlines",
-    "Technology", "Healthcare", "Energy", "Retail", "Telecommunications",
+    {"id": "BDC", "name": "Private Credit / BDC", "risk_profile": "BDC", "status": "ACTIVE"},
+    {"id": "COMMERCIAL_BANKING", "name": "Commercial Banking", "risk_profile": "BANKING", "status": "ACTIVE"},
+    {"id": "REGIONAL_BANKS", "name": "Regional Banks", "risk_profile": "BANKING", "status": "ACTIVE"},
+    {"id": "FINANCE_ASSET_MGMT", "name": "Finance & Asset Management", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "INSURANCE", "name": "Insurance", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "REAL_ESTATE", "name": "Real Estate / REIT", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "ENERGY", "name": "Oil & Gas / Energy", "risk_profile": "ENERGY", "status": "ACTIVE"},
+    {"id": "TELECOM", "name": "Telecommunications", "risk_profile": "TELECOM", "status": "ACTIVE"},
+    {"id": "TECH", "name": "Technology & Software", "risk_profile": "TECH", "status": "ACTIVE"},
+    {"id": "HEALTHCARE", "name": "Healthcare & Pharmaceuticals", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "AIRLINES", "name": "Airlines & Aerospace", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "AUTO", "name": "Automotive & Manufacturing", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "RETAIL", "name": "Retail & Consumer Goods", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
+    {"id": "UTILITIES", "name": "Utilities & Infrastructure", "risk_profile": "ENERGY", "status": "ACTIVE"},
+    {"id": "MINING", "name": "Mining & Metals", "risk_profile": "STANDARD_CORP", "status": "ACTIVE"},
 ]
 
 DEFAULT_DOMAINS = [
@@ -125,15 +153,148 @@ DEFAULT_DOMAINS = [
     "marketwatch.com", "finance.yahoo.com",
 ]
 
+# ---------------------------------------------------------------------------
+# Default Query Categories (Scoped: Universal vs Industry vs Company)
+# ---------------------------------------------------------------------------
 DEFAULT_QUERY_CATEGORIES = [
-    {"name": "Earnings & Financials", "keywords": ["earnings", "quarterly results", "profit", "net income", "revenue", "guidance", "NAV", "book value", "EPS", "EBITDA", "margin", "NIM"]},
-    {"name": "Asset Quality & Credit Risk", "keywords": ["loan loss reserves", "provisioning", "provision", "provisions", "credit cost", "NPA", "defaults", "write-off", "impairment", "NPL", "charge-off"]},
-    {"name": "Credit & Liquidity", "keywords": ["liquidity", "redemption", "credit line", "credit facility", "refinancing", "bond issuance", "debt issue"]},
-    {"name": "M&A & Restructuring", "keywords": ["merger", "acquisition", "acquisition talks", "buyback", "share repurchase", "restructuring", "insolvency", "bankruptcy", "divestment", "takeover"]},
-    {"name": "Funding & Capital", "keywords": ["funding", "capital raise", "CET1", "capital adequacy", "Basel III", "note offering", "IPO", "secondary offering"]},
-    {"name": "Governance & Legal", "keywords": ["CEO resignation", "management change", "fraud", "investigation", "lawsuit", "settlement", "subpoena", "SEC", "board change"]},
-    {"name": "Regulatory & Compliance", "keywords": ["regulatory action", "regulatory fine", "penalty", "stress test", "OCC", "FDIC", "Federal Reserve", "sanction", "compliance"]},
-    {"name": "Rating Actions", "keywords": ["downgrade", "upgrade", "rating action", "Fitch", "Moody's", "S&P", "rating cut", "rating raised", "outlook negative", "outlook stable"]},
+    # Universal Scoped Categories (Applies to all companies)
+    {
+        "name": "Default & Distress",
+        "keywords": ["default", "bankruptcy", "insolvency", "distressed debt", "liquidation", "restructuring talks", "chapter 11"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 100,
+        "target_dimension": "Rating / External Credit Signal",
+        "version": 1,
+    },
+    {
+        "name": "Credit Rating Actions",
+        "keywords": ["downgrade", "upgrade", "rating action", "Fitch", "Moody's", "S&P", "outlook negative", "credit watch"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 95,
+        "target_dimension": "Rating / External Credit Signal",
+        "version": 1,
+    },
+    {
+        "name": "Debt & Capital Structure",
+        "keywords": ["bond offering", "note issuance", "credit facility", "debt refinance", "liquidity squeeze", "capital raise"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 90,
+        "target_dimension": "Leverage / Capital",
+        "version": 1,
+    },
+    {
+        "name": "Governance & Regulatory Enforcement",
+        "keywords": ["CEO resignation", "management change", "fraud", "investigation", "lawsuit", "subpoena", "SEC enforcement", "sanction"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 80,
+        "target_dimension": "Governance / Legal",
+        "version": 1,
+    },
+    {
+        "name": "Earnings & Financial Performance",
+        "keywords": ["earnings", "quarterly results", "revenue", "profit", "net income", "guidance cut", "EBITDA margin", "EPS"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 70,
+        "target_dimension": "Earnings / Cash Flow",
+        "version": 1,
+    },
+    {
+        "name": "M&A & Restructuring",
+        "keywords": ["merger", "acquisition", "buyback", "share repurchase", "divestment", "takeover", "spin-off", "stake sale"],
+        "scope_type": "UNIVERSAL",
+        "industry_id": None,
+        "priority": 60,
+        "target_dimension": "Market / Regulatory",
+        "version": 1,
+    },
+
+    # Industry Specific Scoped Categories
+    {
+        "name": "NAV, Non-Accruals & Valuation",
+        "keywords": ["NAV", "book value", "net asset value", "non-accrual", "PIK income", "senior secured", "realized loss"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "BDC",
+        "priority": 85,
+        "target_dimension": "Asset Quality / Asset Base",
+        "version": 1,
+    },
+    {
+        "name": "NII & Yield Distribution",
+        "keywords": ["NII", "net investment income", "dividend coverage", "originations", "direct lending", "spread compression"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "BDC",
+        "priority": 75,
+        "target_dimension": "Earnings / Cash Flow",
+        "version": 1,
+    },
+    {
+        "name": "Loan Quality & Reserve Provisioning",
+        "keywords": ["loan loss reserves", "provisioning", "provision", "NPA", "NPL", "charge-off", "credit cost", "allowance for credit losses"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "COMMERCIAL_BANKING",
+        "priority": 85,
+        "target_dimension": "Asset Quality / Asset Base",
+        "version": 1,
+    },
+    {
+        "name": "Bank Capital & Stress Testing",
+        "keywords": ["CET1", "capital adequacy", "Basel III", "stress test", "CCAR", "OCC", "FDIC", "Federal Reserve"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "COMMERCIAL_BANKING",
+        "priority": 80,
+        "target_dimension": "Leverage / Capital",
+        "version": 1,
+    },
+    {
+        "name": "Upstream Production & Rig Operations",
+        "keywords": ["drilling permits", "rig count", "barrel output", "refinery utilization", "wellhead", "proven reserves", "crude production"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "ENERGY",
+        "priority": 75,
+        "target_dimension": "Asset Quality / Asset Base",
+        "version": 1,
+    },
+    {
+        "name": "Energy Policy & Quotas",
+        "keywords": ["OPEC quota", "pipeline permit", "spill", "emissions cap", "carbon tax", "drilling ban", "environmental sanction"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "ENERGY",
+        "priority": 70,
+        "target_dimension": "Market / Regulatory",
+        "version": 1,
+    },
+    {
+        "name": "Network, Spectrum & Infrastructure",
+        "keywords": ["spectrum auction", "5G rollout", "tower lease", "capex guidance", "fiber deployment", "network outage", "FCC license"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "TELECOM",
+        "priority": 75,
+        "target_dimension": "Asset Quality / Asset Base",
+        "version": 1,
+    },
+    {
+        "name": "Subscribers, Churn & ARPU",
+        "keywords": ["ARPU", "subscriber churn", "postpaid net adds", "broadband losses", "average revenue per user", "rate hike"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "TELECOM",
+        "priority": 70,
+        "target_dimension": "Earnings / Cash Flow",
+        "version": 1,
+    },
+    {
+        "name": "SaaS Metrics & Cybersecurity",
+        "keywords": ["ARR", "net retention rate", "annual recurring revenue", "cloud growth", "cybersecurity incident", "data breach", "ransomware"],
+        "scope_type": "INDUSTRY",
+        "industry_id": "TECH",
+        "priority": 80,
+        "target_dimension": "Earnings / Cash Flow",
+        "version": 1,
+    },
 ]
 
 # ---------------------------------------------------------------------------

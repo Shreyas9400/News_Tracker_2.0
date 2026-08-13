@@ -857,10 +857,10 @@ class DeterministicEarningsParser:
 
 
 # ---------------------------------------------------------------------------
-# Query Builder (per-provider formatting)
+# Query Builder (Per-provider formatting & Query-level Deduplication)
 # ---------------------------------------------------------------------------
 class QueryBuilder:
-    """Generates search queries with alias expansion and per-provider formatting matching standard boolean syntax."""
+    """Generates search queries with alias expansion, priority sorting, and query-level deduplication."""
 
     @staticmethod
     def company_expression(company: str, aliases: List[str] = None, ticker: str = "") -> str:
@@ -957,3 +957,77 @@ class QueryBuilder:
         elif recency and recency != "any" and recency != "custom":
             q += f" when:{recency}"
         return q
+
+    @classmethod
+    def get_applicable_queries_for_company(
+        cls,
+        company_dict: Dict[str, Any],
+        categories: List[Dict[str, Any]],
+        domains: List[str] = None,
+        recency: str = "7d",
+        start_date: str = "",
+        end_date: str = "",
+    ) -> List[Dict[str, Any]]:
+        """
+        Computes applicable query sweeps for a company with query-level deduplication:
+        1. Evaluates Universal sweeps + Industry sweeps + Company overrides.
+        2. Formulates provider-specific query strings.
+        3. If two categories result in the identical search query string, executes search ONCE while
+           merging all category names, target dimensions, and priority tags so analytical context is 100% preserved.
+        """
+        company_name = company_dict.get("company") or company_dict.get("company_name", "")
+        company_id = company_dict.get("id")
+        industry_id = company_dict.get("industry_id")
+        ticker = company_dict.get("ticker", "")
+        aliases = company_dict.get("aliases", [company_name])
+
+        # Step 1: Filter active categories matching Universal, Industry, or Company scope
+        applicable_cats = []
+        for cat in sorted(categories, key=lambda c: c.get("priority", 70), reverse=True):
+            if not cat.get("enabled", True):
+                continue
+            scope = (cat.get("scope_type") or "UNIVERSAL").upper()
+            c_ind = cat.get("industry_id")
+            c_comp = cat.get("company_id")
+
+            if scope == "UNIVERSAL":
+                applicable_cats.append(cat)
+            elif scope == "INDUSTRY" and industry_id and c_ind == industry_id:
+                applicable_cats.append(cat)
+            elif scope == "COMPANY" and company_id and c_comp == company_id:
+                applicable_cats.append(cat)
+
+        # Step 2: Query-level deduplication (Keyed by canonical Google query string)
+        deduped_queries = {}
+        for cat in applicable_cats:
+            kws = cat.get("keywords", [])
+            google_q = cls.build_google(company_name, aliases, kws, domains, recency, ticker=ticker, start_date=start_date, end_date=end_date)
+            bing_q = cls.build_bing(company_name, aliases, kws, domains, ticker=ticker)
+            ddg_q = cls.build_duckduckgo(company_name, aliases, kws, ticker=ticker)
+
+            norm_key = google_q.strip().lower()
+            if norm_key in deduped_queries:
+                # Merge category context
+                existing = deduped_queries[norm_key]
+                if cat["name"] not in existing["category_names"]:
+                    existing["category_names"].append(cat["name"])
+                if cat.get("target_dimension") and cat["target_dimension"] not in existing["target_dimensions"]:
+                    existing["target_dimensions"].append(cat["target_dimension"])
+                existing["priority"] = max(existing["priority"], cat.get("priority", 70))
+            else:
+                deduped_queries[norm_key] = {
+                    "category_name": cat["name"],
+                    "category_names": [cat["name"]],
+                    "target_dimension": cat.get("target_dimension", "Earnings / Cash Flow"),
+                    "target_dimensions": [cat.get("target_dimension", "Earnings / Cash Flow")],
+                    "scope_type": cat.get("scope_type", "UNIVERSAL"),
+                    "industry_id": cat.get("industry_id"),
+                    "priority": cat.get("priority", 70),
+                    "version": cat.get("version", 1),
+                    "keywords": kws,
+                    "query": google_q,
+                    "bing_query": bing_q,
+                    "ddg_query": ddg_q,
+                }
+
+        return list(deduped_queries.values())

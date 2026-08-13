@@ -1,46 +1,201 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>News Intelligence Terminal</title>
-<meta name="description" content="Real-time news intelligence dashboard with multi-provider search, sentiment analysis, and portfolio tracking.">
+<title>MUFG Bank | News Intelligence Terminal</title>
+<meta name="description" content="MUFG Bank Real-time News Intelligence & Credit Risk Terminal with multi-provider sweeps, sentiment analytics, and portfolio tracking.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg-primary: #080b12; --bg-secondary: #0f1419; --bg-card: #151c28;
-  --bg-card-hover: #1a2435; --bg-glass: rgba(21,28,40,0.75);
-  --border: rgba(56,68,90,0.5); --border-bright: rgba(88,166,255,0.3);
-  --text-primary: #e2e8f0; --text-secondary: #8b9bb4; --text-muted: #5a6a80;
-  --accent-blue: #58a6ff; --accent-green: #34d399; --accent-red: #f87171;
-  --accent-yellow: #fbbf24; --accent-purple: #a78bfa; --accent-cyan: #22d3ee;
-  --accent-orange: #fb923c;
-  --gradient-blue: linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%);
-  --gradient-card: linear-gradient(135deg, rgba(21,28,40,0.9), rgba(15,20,25,0.95));
-  --shadow-card: 0 4px 24px rgba(0,0,0,0.3);
-  --shadow-glow: 0 0 20px rgba(88,166,255,0.08);
-  --radius: 12px; --radius-sm: 8px; --radius-xs: 6px;
-}
-* { margin:0; padding:0; box-sizing:border-box; }
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: var(--bg-primary); color: var(--text-primary);
-  line-height: 1.5; min-height: 100vh;
-  background-image: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.03) 0%, transparent 60%);
+/* =========================================================================
+   MUFG BANK RED CANVAS DESIGN SYSTEM (#d62427 Background & #595a5a Grey)
+   ========================================================================= */
+:root, [data-theme="dark"] {
+  --theme-name: 'dark';
+  /* MUFG Official Brand Red Canvas */
+  --mufg-red: #d62427;
+  --mufg-red-dark: #8f1215;
+  --mufg-red-deep: #4f080a;
+  --mufg-red-dim: rgba(255, 255, 255, 0.12);
+  --mufg-red-border: rgba(255, 255, 255, 0.25);
+  
+  --mufg-grey: #595a5a;
+  --mufg-grey-light: #C2C5C8;
+  --mufg-grey-dim: rgba(255, 255, 255, 0.1);
+  --mufg-grey-border: rgba(255, 255, 255, 0.18);
+
+  /* Dark Theme Surfaces on Red Canvas */
+  --bg-primary: #5c0b0e;
+  --bg-page-gradient: radial-gradient(ellipse at 50% 0%, #8f1316 0%, #54080a 55%, #300405 100%);
+  --bg-secondary: #3b0608;
+  --bg-card: rgba(38, 5, 7, 0.88);
+  --bg-card-hover: rgba(55, 8, 11, 0.95);
+  --bg-tertiary: #4d090c;
+  --bg-glass: rgba(45, 6, 8, 0.9);
+
+  /* Borders & Dividers */
+  --border: rgba(255, 255, 255, 0.15);
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-bright: rgba(255, 255, 255, 0.4);
+  --border-input: rgba(255, 255, 255, 0.22);
+
+  /* Typography (Red fonts STRICTLY avoided for non-negative items) */
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E4E8;
+  --text-muted: #A8ABB0;
+  --text-mufg-grey: #D5D7DA;
+  --text-accent: #38BDF8;
+
+  /* Data & Semantic Accents */
+  --accent-blue: #38BDF8;
+  --accent-green: #34D399;
+  --accent-red-semantic: #F87171; /* Strictly for negative sentiment / danger */
+  --accent-yellow: #FBBF24;
+  --accent-purple: #C084FC;
+  --accent-cyan: #22D3EE;
+  --accent-orange: #FB923C;
+
+  /* Shadows & Gradients */
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 20px rgba(255, 255, 255, 0.15);
+  --gradient-header: linear-gradient(135deg, #a31518 0%, #630a0d 100%);
+  --gradient-card: linear-gradient(145deg, rgba(45, 6, 8, 0.92) 0%, rgba(30, 4, 5, 0.95) 100%);
+  --gradient-btn: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 100%);
+
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-xs: 4px;
 }
 
-/* HEADER */
+[data-theme="light"] {
+  --theme-name: 'light';
+  /* MUFG Official Brand Red Canvas (Light Mode) */
+  --mufg-red: #d62427;
+  --mufg-red-dark: #b81b1e;
+  --mufg-red-deep: #700b0e;
+  --mufg-red-dim: rgba(214, 36, 39, 0.08);
+  --mufg-red-border: rgba(214, 36, 39, 0.25);
+
+  --mufg-grey: #595a5a;
+  --mufg-grey-light: #6e7070;
+  --mufg-grey-dim: rgba(89, 90, 90, 0.08);
+  --mufg-grey-border: #D1D5DB;
+
+  /* Light Theme Surfaces on Red Canvas */
+  --bg-primary: #d62427;
+  --bg-page-gradient: linear-gradient(145deg, #d62427 0%, #b81b1e 50%, #941316 100%);
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F8FAFC;
+  --bg-tertiary: #F1F3F6;
+  --bg-glass: rgba(255, 255, 255, 0.96);
+
+  /* Borders & Dividers */
+  --border: #E2E5E9;
+  --border-subtle: #ECEEF2;
+  --border-bright: #CBD5E1;
+  --border-input: #CBD5E1;
+
+  /* Typography (Red fonts STRICTLY avoided for standard UI) */
+  --text-primary: #1A1C1E;
+  --text-secondary: #595a5a;
+  --text-muted: #6e7070;
+  --text-mufg-grey: #595a5a;
+  --text-accent: #0284C7;
+
+  /* Data & Semantic Accents */
+  --accent-blue: #0284C7;
+  --accent-green: #059669;
+  --accent-red-semantic: #DC2626; /* Strictly for negative sentiment / danger */
+  --accent-yellow: #D97706;
+  --accent-purple: #7C3AED;
+  --accent-cyan: #0891B2;
+  --accent-orange: #EA580C;
+
+  /* Shadows & Gradients */
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.18);
+  --shadow-glow: 0 0 16px rgba(0, 0, 0, 0.2);
+  --gradient-header: linear-gradient(135deg, #b81b1e 0%, #8f1215 100%);
+  --gradient-card: linear-gradient(145deg, #FFFFFF 0%, #FAFBFC 100%);
+  --gradient-btn: linear-gradient(135deg, #1A1C1E 0%, #2A2D32 100%);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-page-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  line-height: 1.5; min-height: 100vh;
+  transition: background 0.3s ease, color 0.25s ease;
+}
+
+/* =========================================================================
+   HEADER (RED BACKGROUND, WHITE & GREY TYPOGRAPHY)
+   ========================================================================= */
 .header {
-  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
-  padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
+  background: var(--gradient-header);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px 28px; display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 100;
   backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
 }
-.header h1 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: -0.3px; }
-.header h1 .logo-accent { color: var(--accent-cyan); font-weight: 800; }
+.header-brand { display: flex; align-items: center; gap: 16px; }
+
+/* MUFG OFFICIAL LOGO CONTAINER */
+.mufg-brand-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: #FFFFFF; padding: 4px 14px 4px 8px; border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+.mufg-svg-icon {
+  width: 32px; height: 32px; display: block; flex-shrink: 0;
+}
+.mufg-brand-text {
+  font-size: 18px; font-weight: 900; color: #595a5a; letter-spacing: -0.5px;
+  line-height: 1; font-family: 'Inter', sans-serif;
+}
+
+.header h1 {
+  font-size: 14.5px; font-weight: 800; display: flex; align-items: center; gap: 10px;
+  letter-spacing: -0.2px; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+.header h1 .terminal-sub {
+  color: #F3F4F6; font-weight: 700; letter-spacing: 0.5px;
+}
+.header-tag {
+  font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35); color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.5px;
+}
 .header-actions { display: flex; gap: 10px; align-items: center; }
+
+/* HEADER THEME TOGGLE & ACTIONS */
+.theme-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: var(--radius-xs); border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.3); color: #FFFFFF; cursor: pointer;
+  font-size: 11.5px; font-weight: 700; font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+}
+.theme-toggle-btn:hover {
+  background: #FFFFFF; color: #1F2022; border-color: #FFFFFF; transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.status-badge {
+  font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 700;
+  background: rgba(0,0,0,0.35); color: #FFFFFF; border: 1px solid rgba(255,255,255,0.3);
+  letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 6px;
+}
+.status-badge.running {
+  color: #34D399; border-color: #34D399;
+  animation: pulse 1.5s infinite; box-shadow: 0 0 12px rgba(52,211,153,0.3);
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 
 /* BUTTONS */
 .btn {
@@ -49,96 +204,133 @@ body {
   font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif;
   transition: all 0.2s cubic-bezier(0.4,0,0.2,1); letter-spacing: 0.01em;
 }
-.btn:hover { background: var(--bg-card-hover); border-color: var(--accent-blue); transform: translateY(-1px); box-shadow: var(--shadow-glow); }
-.btn:active { transform: translateY(0); }
-.btn-primary { background: linear-gradient(135deg, #1d6f42, #238636); border-color: #238636; color: #fff; }
-.btn-primary:hover { background: linear-gradient(135deg, #238636, #2ea043); box-shadow: 0 0 16px rgba(35,134,54,0.3); }
-.btn-danger { background: linear-gradient(135deg, #9a2020, #da3633); border-color: #da3633; color: #fff; }
-.btn-danger:hover { background: linear-gradient(135deg, #da3633, #f85149); }
-
-.status-badge {
-  font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 600;
-  background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
-  letter-spacing: 0.02em;
+.btn:hover {
+  background: var(--bg-card-hover); border-color: var(--border-bright);
+  transform: translateY(-1px); box-shadow: var(--shadow-card);
 }
-.status-badge.running { color: var(--accent-green); border-color: var(--accent-green); animation: pulse 1.5s infinite; box-shadow: 0 0 12px rgba(52,211,153,0.15); }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: #FFFFFF; border-color: #FFFFFF; color: #1F2022;
+  font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.btn-primary:hover {
+  background: #F3F4F6; color: #000000; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+[data-theme="light"] .btn-primary {
+  background: #1F2022; border-color: #1F2022; color: #FFFFFF;
+}
+[data-theme="light"] .btn-primary:hover {
+  background: #374151; color: #FFFFFF;
+}
+.btn-header-trigger {
+  background: #FFFFFF; border-color: #FFFFFF; color: #1F2022;
+  font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.btn-header-trigger:hover {
+  background: #F3F4F6; color: #000000; box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+}
+.btn-danger {
+  background: linear-gradient(135deg, #991B1B, #d62427); border-color: #d62427; color: #FFF;
+}
+.btn-danger:hover {
+  background: linear-gradient(135deg, #d62427, #EF4444); box-shadow: 0 0 12px rgba(214,36,39,0.35);
+}
+.btn-secondary {
+  background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border);
+}
 
-/* NAV */
+/* =========================================================================
+   NAVIGATION TABS (White / Grey fonts, non-red active tabs)
+   ========================================================================= */
 .nav {
   display: flex; gap: 0; background: var(--bg-secondary);
   border-bottom: 1px solid var(--border); padding: 0 28px; overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .nav-tab {
-  padding: 12px 18px; font-size: 12.5px; color: var(--text-muted);
-  cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
-  transition: all 0.2s; font-weight: 600; letter-spacing: 0.01em;
+  padding: 13px 18px; font-size: 12.5px; color: var(--text-muted);
+  cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap;
+  transition: all 0.2s ease; font-weight: 600; letter-spacing: 0.01em;
+  display: flex; align-items: center; gap: 6px;
 }
-.nav-tab:hover { color: var(--text-secondary); }
-.nav-tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+.nav-tab:hover { color: var(--text-primary); background: var(--bg-card-hover); }
+.nav-tab.active {
+  color: var(--text-primary); border-bottom-color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.1); font-weight: 800;
+}
+[data-theme="light"] .nav-tab.active {
+  color: #1F2022; border-bottom-color: #1F2022;
+  background: #F1F3F6;
+}
 
-/* MAIN */
-.main { padding: 24px 28px 80px; max-width: 1600px; margin: 0 auto; }
+/* =========================================================================
+   MAIN CONTAINER & SECTIONS
+   ========================================================================= */
+.main { padding: 24px 28px 80px; max-width: 1640px; margin: 0 auto; }
 .tab-content { display: none; }
-.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
-@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+.tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
-/* SECTION HEADERS */
+.section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
 .section-title {
-  font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex;
+  font-size: 14px; font-weight: 700; display: flex;
   align-items: center; gap: 10px; color: var(--text-primary); letter-spacing: -0.2px;
 }
 .section-subtitle { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+.section-cta-btn {
+  font-size: 11.5px; font-weight: 700; color: var(--text-accent); background: var(--mufg-grey-dim);
+  padding: 5px 12px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
+}
+.section-cta-btn:hover {
+  background: var(--text-primary); color: #000; transform: translateX(2px);
+}
 
-/* METRIC CARDS & CTAs */
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+/* =========================================================================
+   DASHBOARD KPI CARDS & WIDGETS (NO RED FONTS FOR NON-NEGATIVE STATS)
+   ========================================================================= */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 28px; }
 .card {
   background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 18px; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer;
-  backdrop-filter: blur(8px); position: relative; overflow: hidden;
-  display: flex; flex-direction: column; justify-content: space-between;
+  position: relative; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between;
+  box-shadow: var(--shadow-card);
 }
 .card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
   background: transparent; transition: background 0.3s;
 }
-.card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: var(--shadow-card); }
-.card:hover::before { background: var(--accent-blue); }
-.card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 600; }
-.card-value { font-size: 32px; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; margin-bottom: 12px; }
+.card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: var(--shadow-glow); }
+.card:hover::before { background: var(--text-accent); }
+.card-label { font-size: 11px; color: var(--text-mufg-grey); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 700; }
+.card-value { font-size: 32px; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; margin-bottom: 12px; color: var(--text-primary); }
+.card-value.white { color: var(--text-primary); }
 .card-value.blue { color: var(--accent-blue); }
 .card-value.green { color: var(--accent-green); }
-.card-value.red { color: var(--accent-red); }
 .card-value.yellow { color: var(--accent-yellow); }
 .card-value.purple { color: var(--accent-purple); }
 .card-value.cyan { color: var(--accent-cyan); }
+.card-value.negative-red { color: var(--accent-red-semantic); } /* Red strictly used for negative counts */
 .card-cta {
-  font-size: 11.5px; font-weight: 700; color: var(--accent-blue);
+  font-size: 11.5px; font-weight: 700; color: var(--text-accent);
   display: flex; align-items: center; justify-content: space-between;
-  padding-top: 10px; border-top: 1px solid rgba(56,68,90,0.3); transition: color 0.2s;
+  padding-top: 10px; border-top: 1px solid var(--border-subtle); transition: all 0.2s;
 }
-.card:hover .card-cta { color: #80bfff; }
-.section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.section-cta-btn {
-  font-size: 12px; font-weight: 600; color: var(--accent-blue); background: rgba(88,166,255,0.08);
-  padding: 5px 12px; border-radius: var(--radius-xs); border: 1px solid rgba(88,166,255,0.2);
-  cursor: pointer; transition: all 0.2s; text-decoration: none;
-}
-.section-cta-btn:hover { background: rgba(88,166,255,0.18); border-color: var(--accent-blue); transform: translateX(2px); }
+.card:hover .card-cta { color: var(--text-primary); transform: translateX(2px); }
 
 /* DAILY TOP NEWS */
 .daily-news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; margin-bottom: 28px; }
 .news-card {
   background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px 18px; transition: all 0.25s; cursor: pointer; position: relative;
-  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow-card);
 }
-.news-card:hover { border-color: var(--border-bright); transform: translateY(-1px); box-shadow: var(--shadow-card); }
+.news-card:hover { border-color: var(--border-bright); transform: translateY(-2px); box-shadow: var(--shadow-glow); }
 .news-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
 .news-card-title { font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--text-primary); flex: 1; }
-.news-card-title:hover { color: var(--accent-blue); }
+.news-card-title:hover { color: var(--text-accent); }
 .news-card-meta { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-.news-card-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; background: rgba(88,166,255,0.1); color: var(--accent-blue); border: 1px solid rgba(88,166,255,0.2); }
+.news-card-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
 .news-card-source { font-size: 11px; color: var(--text-muted); }
 .news-card-score { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
 
@@ -146,14 +338,14 @@ body {
 .sentiment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 28px; }
 .sentiment-card {
   background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px; transition: all 0.25s; cursor: pointer;
+  padding: 16px; transition: all 0.25s; cursor: pointer; box-shadow: var(--shadow-card);
 }
-.sentiment-card:hover { border-color: var(--border-bright); transform: translateY(-1px); }
-.sentiment-card-name { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.sentiment-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+.sentiment-card-name { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: var(--text-primary); }
 .sentiment-bar-row { display: flex; gap: 4px; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
 .sentiment-bar-row .bar-pos { background: var(--accent-green); }
-.sentiment-bar-row .bar-neu { background: var(--text-muted); }
-.sentiment-bar-row .bar-neg { background: var(--accent-red); }
+.sentiment-bar-row .bar-neu { background: var(--mufg-grey); }
+.sentiment-bar-row .bar-neg { background: var(--accent-red-semantic); }
 .sentiment-card-stats { display: flex; gap: 12px; font-size: 11px; color: var(--text-secondary); }
 .sentiment-stat { display: flex; align-items: center; gap: 4px; }
 .sentiment-dot { width: 6px; height: 6px; border-radius: 50%; }
@@ -165,9 +357,9 @@ body {
   background: var(--bg-card); border: 1px solid var(--border); cursor: pointer;
   color: var(--text-secondary); transition: all 0.2s; display: flex; align-items: center; gap: 6px;
 }
-.tag-pill:hover, .tag-pill.active { background: rgba(88,166,255,0.1); color: var(--accent-blue); border-color: rgba(88,166,255,0.3); }
+.tag-pill:hover, .tag-pill.active { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-bright); }
 .tag-pill .tag-count {
-  background: rgba(88,166,255,0.15); color: var(--accent-blue); font-size: 10px;
+  background: rgba(255,255,255,0.15); color: var(--text-primary); font-size: 10px;
   padding: 1px 6px; border-radius: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
 }
 
@@ -175,25 +367,25 @@ body {
 .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
 .panel {
   background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 18px; backdrop-filter: blur(8px);
+  padding: 18px; box-shadow: var(--shadow-card);
 }
-.panel-title { font-size: 12px; font-weight: 700; margin-bottom: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; display:flex; justify-content:space-between; align-items:center; }
+.panel-title { font-size: 12px; font-weight: 700; margin-bottom: 14px; color: var(--text-mufg-grey); text-transform: uppercase; letter-spacing: 0.6px; display:flex; justify-content:space-between; align-items:center; }
 .trend-item {
   display: flex; justify-content: space-between; align-items: center; padding: 10px 0;
-  border-bottom: 1px solid rgba(56,68,90,0.3); font-size: 13px; cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle); font-size: 13px; cursor: pointer;
   transition: all 0.15s;
 }
-.trend-item:hover { padding-left: 6px; color: var(--accent-blue); }
+.trend-item:hover { padding-left: 6px; color: var(--text-accent); }
 .trend-item:last-child { border-bottom: none; }
 .trend-count {
-  background: rgba(88,166,255,0.1); padding: 3px 10px; border-radius: 12px;
-  font-size: 11px; color: var(--accent-blue); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+  background: var(--bg-tertiary); padding: 3px 10px; border-radius: 12px;
+  font-size: 11px; color: var(--text-accent); font-weight: 700; font-family: 'JetBrains Mono', monospace;
 }
 
 /* TAXONOMY BOX */
 .taxonomy-box {
   background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 18px; margin-bottom: 28px; backdrop-filter: blur(8px);
+  padding: 18px; margin-bottom: 28px; box-shadow: var(--shadow-card);
 }
 .taxonomy-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .tax-pill {
@@ -201,76 +393,115 @@ body {
   background: var(--bg-secondary); border: 1px solid var(--border); cursor: pointer; color: var(--text-secondary);
   transition: all 0.2s;
 }
-.tax-pill:hover, .tax-pill.active { background: rgba(88,166,255,0.1); color: var(--accent-blue); border-color: rgba(88,166,255,0.3); }
+.tax-pill:hover, .tax-pill.active { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-bright); }
 .tag-cloud { display: flex; gap: 8px; flex-wrap: wrap; }
 .tag-item {
-  background: rgba(8,11,18,0.6); border: 1px solid var(--border); padding: 5px 12px; border-radius: var(--radius-xs);
+  background: var(--bg-tertiary); border: 1px solid var(--border); padding: 5px 12px; border-radius: var(--radius-xs);
   font-size: 12px; color: var(--text-primary); cursor: pointer; transition: all 0.2s;
   display: inline-flex; align-items: center; gap: 6px;
 }
-.tag-item:hover { border-color: var(--accent-blue); color: var(--accent-blue); transform: scale(1.03); }
-.tag-badge { background: rgba(52,211,153,0.15); color: var(--accent-green); font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.tag-item:hover { border-color: var(--border-bright); color: var(--text-accent); transform: scale(1.03); }
+.tag-badge { background: rgba(16,185,129,0.15); color: var(--accent-green); font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
 
-/* FILTER BAR */
-.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
-.filter-bar input, .filter-bar select {
-  padding: 8px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-primary); font-size: 12.5px;
-  font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+/* =========================================================================
+   ACCORDION FILTER COMPONENT FOR NEWS TERMINAL
+   ========================================================================= */
+.accordion-panel {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  margin-bottom: 18px; box-shadow: var(--shadow-card); overflow: hidden;
 }
-.filter-bar input { flex: 1; min-width: 200px; }
-.filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(88,166,255,0.1); }
-.filter-bar select { min-width: 130px; cursor: pointer; }
+.accordion-header-main {
+  padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border); cursor: pointer;
+  user-select: none;
+}
+.accordion-header-title {
+  font-size: 13.5px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+  color: var(--text-primary);
+}
+.accordion-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px;
+  background: var(--bg-tertiary); color: var(--text-accent); border: 1px solid var(--border);
+}
+.accordion-item {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.accordion-item:last-child { border-bottom: none; }
+.accordion-toggle-bar {
+  padding: 10px 18px; display: flex; justify-content: space-between; align-items: center;
+  background: var(--bg-tertiary); cursor: pointer; font-size: 12px; font-weight: 700;
+  color: var(--text-secondary); transition: all 0.2s; user-select: none;
+}
+.accordion-toggle-bar:hover {
+  background: var(--bg-card-hover); color: var(--text-primary);
+}
+.accordion-toggle-bar.active {
+  color: var(--text-primary);
+}
+.accordion-arrow {
+  font-size: 10px; transition: transform 0.2s ease;
+}
+.accordion-toggle-bar.active .accordion-arrow {
+  transform: rotate(180deg);
+}
+.accordion-content {
+  padding: 14px 18px; display: none; background: var(--bg-card);
+}
+.accordion-content.open {
+  display: block; animation: accordionDown 0.2s ease;
+}
+@keyframes accordionDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-/* PAGINATION */
-.pagination {
-  display: flex; justify-content: center; align-items: center; gap: 8px;
-  padding: 16px 0; margin-top: 12px;
+/* PRESET BUTTONS */
+.nav-filter-btn {
+  padding: 6px 12px; font-size: 11.5px; font-weight: 600; border-radius: var(--radius-xs);
+  border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary);
+  cursor: pointer; transition: all 0.2s;
 }
-.pagination .page-btn {
-  padding: 6px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
-  background: var(--bg-card); color: var(--text-secondary); cursor: pointer;
-  font-size: 12px; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif;
+.nav-filter-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+.nav-filter-btn.active {
+  background: var(--bg-tertiary); border-color: var(--border-bright); color: var(--text-primary); font-weight: 700;
 }
-.pagination .page-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
-.pagination .page-btn.active { background: rgba(88,166,255,0.15); color: var(--accent-blue); border-color: var(--accent-blue); }
-.pagination .page-btn:disabled { opacity: 0.4; cursor: default; }
-.pagination .page-info { font-size: 12px; color: var(--text-muted); font-weight: 500; }
 
-/* TABLE */
-.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+/* =========================================================================
+   TABLES, PAGINATION, BADGES
+   ========================================================================= */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); }
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 th {
-  background: var(--bg-secondary); color: var(--text-muted); font-weight: 700;
-  padding: 10px 14px; text-align: left; position: sticky; top: 0; cursor: pointer;
+  background: var(--bg-secondary); color: var(--text-mufg-grey); font-weight: 700;
+  padding: 11px 14px; text-align: left; position: sticky; top: 0; cursor: pointer;
   border-bottom: 1px solid var(--border); white-space: nowrap; user-select: none;
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
 }
-th:hover { color: var(--text-secondary); }
-td { padding: 10px 14px; border-bottom: 1px solid rgba(56,68,90,0.3); vertical-align: middle; }
+th:hover { color: var(--text-primary); }
+td { padding: 11px 14px; border-bottom: 1px solid var(--border-subtle); vertical-align: middle; }
 tr { transition: background 0.15s; }
 tr:hover { background: var(--bg-card-hover); }
 tr.high-relevance { border-left: 3px solid var(--accent-green); }
 
-/* SENTIMENT BADGES */
+/* SENTIMENT BADGES (Red reserved only for negative) */
 .sentiment-badge {
   display: inline-block; padding: 3px 10px; border-radius: 4px;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
   cursor: pointer; position: relative; transition: all 0.2s;
 }
 .sentiment-badge:hover { transform: scale(1.05); }
-.sentiment-vpos { background: rgba(52,211,153,0.15); color: var(--accent-green); }
-.sentiment-pos  { background: rgba(52,211,153,0.1); color: #56d364; }
-.sentiment-neu  { background: rgba(139,155,180,0.1); color: var(--text-secondary); }
-.sentiment-neg  { background: rgba(248,113,113,0.15); color: var(--accent-red); }
-.sentiment-vneg { background: rgba(248,113,113,0.2); color: #ff7b72; }
+.sentiment-vpos { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+.sentiment-pos  { background: rgba(16,185,129,0.1); color: var(--accent-green); }
+.sentiment-neu  { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+.sentiment-neg  { background: rgba(239,68,68,0.2); color: var(--accent-red-semantic); }
+.sentiment-vneg { background: rgba(239,68,68,0.3); color: #EF4444; }
 .sentiment-user { outline: 2px solid var(--accent-yellow); outline-offset: 1px; }
 
 /* SENTIMENT DROPDOWN */
 .sentiment-dropdown {
   position: absolute; top: 100%; left: 0; z-index: 50;
   background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xs);
-  padding: 4px; min-width: 140px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  padding: 4px; min-width: 140px; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
   display: none;
 }
 .sentiment-dropdown.show { display: block; }
@@ -282,26 +513,78 @@ tr.high-relevance { border-left: 3px solid var(--accent-green); }
 
 .score-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; }
 a.headline-link { color: var(--text-primary); text-decoration: none; font-weight: 600; transition: color 0.15s; }
-a.headline-link:hover { color: var(--accent-blue); }
+a.headline-link:hover { color: var(--text-accent); }
 
-/* MANAGEMENT */
-.mgmt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
-.mgmt-header h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+/* PAGINATION */
+.pagination {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  padding: 16px 0; margin-top: 12px;
+}
+.pagination .page-btn {
+  padding: 6px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif;
+}
+.pagination .page-btn:hover { border-color: var(--border-bright); color: var(--text-primary); }
+.pagination .page-btn.active { background: var(--bg-tertiary); color: var(--text-primary); border-color: var(--border-bright); font-weight: 700; }
+.pagination .page-btn:disabled { opacity: 0.4; cursor: default; }
+.pagination .page-info { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+/* =========================================================================
+   MANAGEMENT FORMS & SETTINGS
+   ========================================================================= */
+.mgmt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px; }
+.mgmt-header h2 { font-size: 16px; font-weight: 800; letter-spacing: -0.3px; color: var(--text-primary); }
 .form-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
-.form-row input, .form-row select { padding: 8px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 12.5px; }
+.form-row input, .form-row select {
+  padding: 8px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border-input);
+  background: var(--bg-secondary); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 12.5px;
+}
 .form-row input { flex: 1; min-width: 120px; }
-.form-row input:focus { outline: none; border-color: var(--accent-blue); }
+.form-row input:focus, .form-row select:focus { outline: none; border-color: var(--border-bright); box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
 .toggle-btn { cursor: pointer; font-size: 16px; transition: transform 0.15s; }
 .toggle-btn:hover { transform: scale(1.1); }
 .edit-btn { cursor: pointer; color: var(--accent-blue); font-size: 12px; margin-right: 8px; font-weight: 600; }
 .edit-btn:hover { text-decoration: underline; }
-.delete-btn { cursor: pointer; color: var(--accent-red); font-size: 12px; font-weight: 600; }
+.delete-btn { cursor: pointer; color: var(--accent-red-semantic); font-size: 12px; font-weight: 600; }
 .delete-btn:hover { text-decoration: underline; }
-.code-block { background: rgba(8,11,18,0.8); border:1px solid var(--border); padding:10px 14px; border-radius:var(--radius-xs); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--accent-blue); overflow-x:auto; }
+.code-block { background: var(--bg-tertiary); border: 1px solid var(--border); padding: 10px 14px; border-radius: var(--radius-xs); font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-primary); overflow-x: auto; }
+
+.settings-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 22px; margin-bottom: 24px; box-shadow: var(--shadow-card);
+}
+.settings-card.danger-zone {
+  border: 1px solid rgba(248, 113, 113, 0.45);
+  background: linear-gradient(145deg, var(--bg-card) 0%, rgba(220, 38, 38, 0.12) 100%);
+}
+
+.info-box {
+  background: var(--bg-card); padding: 14px 18px; border-radius: var(--radius-xs);
+  border: 1px solid var(--border); margin-bottom: 20px; font-size: 12px;
+  color: var(--text-secondary); line-height: 1.7; box-shadow: var(--shadow-card);
+}
+.star-btn { cursor: pointer; font-size: 16px; user-select: none; transition: transform 0.15s; }
+.star-btn:hover { transform: scale(1.2); }
+.star-btn.starred { color: var(--accent-yellow); }
+.reviewed-dimmed { opacity: 0.5; }
+.reviewed-tag { background: var(--bg-tertiary); color: var(--text-muted); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 
 /* MODALS */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
-.modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 90%; max-width: 600px; box-shadow: 0 16px 48px rgba(0,0,0,0.5); animation: modalIn 0.25s ease; }
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.75); display: none; justify-content: center; align-items: center;
+  z-index: 1000; backdrop-filter: blur(6px);
+}
+.modal {
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px; width: 90%; max-width: 600px; box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+  animation: modalIn 0.25s ease;
+}
+.modal-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; box-shadow: 0 16px 48px rgba(0,0,0,0.6); animation: modalIn 0.25s ease;
+}
 @keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
 .modal h3 { margin-bottom: 18px; font-size: 16px; font-weight: 700; }
 .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
@@ -309,57 +592,69 @@ a.headline-link:hover { color: var(--accent-blue); }
 /* FOOTER */
 .footer {
   background: var(--bg-secondary); border-top: 1px solid var(--border);
-  padding: 8px 28px; font-size: 11px; color: var(--text-muted);
+  padding: 8px 28px; font-size: 11px; color: var(--text-mufg-grey);
   display: flex; justify-content: space-between;
   position: fixed; bottom: 0; width: 100%; z-index: 100;
   backdrop-filter: blur(12px);
 }
 .empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
-.star-btn { cursor: pointer; font-size: 16px; user-select: none; transition: transform 0.15s; }
-.star-btn:hover { transform: scale(1.2); }
-.star-btn.starred { color: var(--accent-yellow); }
-.reviewed-dimmed { opacity: 0.45; }
-.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
-.nav-filter-btn { padding: 6px 12px; font-size: 11px; font-weight: 600; }
-.nav-filter-btn.active { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: var(--accent-blue); }
-.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-.live-counter-badge { background: rgba(248,113,113,0.15); color: var(--accent-red); font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
-.reviewed-tag { background: rgba(139,155,180,0.1); color: var(--text-muted); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .category-group-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; padding: 18px; }
-.category-group-title { font-size: 14px; font-weight: 700; color: var(--accent-blue); margin-bottom: 12px; display: flex; justify-content: space-between; }
-.info-box { background: var(--bg-card); padding: 14px 18px; border-radius: var(--radius-xs); border: 1px solid var(--border); margin-bottom: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+.category-group-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px; display: flex; justify-content: space-between; }
 
 @media (max-width: 768px) {
   .split { grid-template-columns: 1fr; }
   .daily-news-grid { grid-template-columns: 1fr; }
   .sentiment-grid { grid-template-columns: 1fr; }
   .cards { grid-template-columns: repeat(2, 1fr); }
+  .header { padding: 10px 16px; flex-direction: column; gap: 8px; }
+  .nav { padding: 0 16px; }
+  .main { padding: 16px; }
 }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
+<!-- =========================================================================
+     HEADER (MUFG Official Logo, White/Grey Typography)
+     ========================================================================= -->
 <div class="header">
-  <h1>📰 <span class="logo-accent">NEWS INTELLIGENCE</span> TERMINAL</h1>
+  <div class="header-brand">
+    <!-- Official MUFG Logo Box -->
+    <div class="mufg-brand-badge" title="Mitsubishi UFJ Financial Group">
+      <svg class="mufg-svg-icon" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Outer left arc -->
+        <path d="M 45 15 C 22 15 10 32 10 50 C 10 68 22 85 45 85 C 32 75 25 63 25 50 C 25 37 32 25 45 15 Z" fill="#d62427"/>
+        <!-- Outer right arc -->
+        <path d="M 55 15 C 78 15 90 32 90 50 C 90 68 78 85 55 85 C 68 75 75 63 75 50 C 75 37 68 25 55 15 Z" fill="#d62427"/>
+        <!-- Center solid red dot -->
+        <circle cx="50" cy="50" r="18" fill="#d62427"/>
+      </svg>
+      <span class="mufg-brand-text">MUFG</span>
+    </div>
+    <h1><span class="terminal-sub">NEWS INTELLIGENCE TERMINAL</span> <span class="header-tag">INSTITUTIONAL</span></h1>
+  </div>
   <div class="header-actions">
-    <button class="btn" onclick="toggleAudioAlerts()" id="audioToggleBtn" title="Toggle audio notifications">🔊 Sound: ON</button>
-    <button class="btn btn-danger" onclick="confirmResetAllNews()" title="Clear all headlines">🗑️ Reset Data</button>
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light/Dark Mode">
+      <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light Mode</span>
+    </button>
     <span id="statusBadge" class="status-badge">Idle</span>
-    <button class="btn btn-primary" onclick="triggerRefresh()">🔄 Trigger Search</button>
+    <button class="btn btn-header-trigger" onclick="triggerRefresh()">🔄 Trigger Search</button>
   </div>
 </div>
 
-<!-- NAV -->
+<!-- =========================================================================
+     NAVIGATION (Earnings Tracker placed right after News Terminal)
+     ========================================================================= -->
 <div class="nav">
   <div class="nav-tab active" id="tabNav-dashboard" onclick="showTab('dashboard')">📊 Dashboard</div>
   <div class="nav-tab" id="tabNav-news" onclick="showTab('news')">📰 News Terminal</div>
+  <div class="nav-tab" id="tabNav-earnings" onclick="showTab('earnings')">📅 Earnings Tracker</div>
   <div class="nav-tab" id="tabNav-portfolio" onclick="showTab('portfolio')">🏢 Portfolio</div>
   <div class="nav-tab" id="tabNav-queries" onclick="showTab('queries')">📜 Query Inspector</div>
   <div class="nav-tab" id="tabNav-industries" onclick="showTab('industries')">🏭 Industries</div>
   <div class="nav-tab" id="tabNav-keywords" onclick="showTab('keywords')">🔑 Keywords</div>
   <div class="nav-tab" id="tabNav-domains" onclick="showTab('domains')">🌐 Domains</div>
-  <div class="nav-tab" id="tabNav-earnings" onclick="showTab('earnings')">📅 Earnings Tracker</div>
   <div class="nav-tab" id="tabNav-settings" onclick="showTab('settings')">⚙️ Settings</div>
 </div>
 
@@ -367,12 +662,12 @@ a.headline-link:hover { color: var(--accent-blue); }
 
   <!-- ============ DASHBOARD TAB ============ -->
   <div id="tab-dashboard" class="tab-content active">
-    <!-- Metric Cards -->
+    <!-- Metric Cards (Standard stats use White, Cyan, Yellow, Green; Red strictly for Negative Sentiment) -->
     <div class="cards" id="metricsCards"></div>
 
     <!-- Daily Top News -->
     <div class="section-header-row">
-      <div class="section-title" style="margin-bottom:0;">📰 Daily Top Material News <span class="section-subtitle">Today's highest-relevance headlines across your portfolio</span></div>
+      <div class="section-title" style="margin-bottom:0;">📰 Daily Top Material News <span class="section-subtitle">Highest-relevance headlines across your portfolio</span></div>
       <button class="section-cta-btn" onclick="showTab('news')">View All News Terminal ➔</button>
     </div>
     <div class="daily-news-grid" id="dailyNewsGrid"><div class="empty-state">Loading top news...</div></div>
@@ -420,68 +715,108 @@ a.headline-link:hover { color: var(--accent-blue); }
 
   <!-- ============ NEWS TERMINAL TAB ============ -->
   <div id="tab-news" class="tab-content">
-    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-card);">
-      <!-- Row 1: Search + Presets + Action Buttons -->
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
-        <input type="text" id="newsFilter" placeholder="🔍 Search headlines, companies, sources, keywords..." oninput="debounceLoadNews()" style="flex:2;min-width:240px;font-size:12.5px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-          <button class="btn nav-filter-btn active" id="btnFilterAll" onclick="setNewsFilterType('All')" style="font-size:11.5px;padding:6px 12px;">All News</button>
-          <button class="btn nav-filter-btn" id="btnFilterLive" onclick="setNewsFilterType('live')" style="font-size:11.5px;padding:6px 12px;">🔴 Live</button>
-          <button class="btn nav-filter-btn" id="btnFilterStarred" onclick="setNewsFilterType('starred')" style="font-size:11.5px;padding:6px 12px;">⭐ Starred</button>
-          <button class="btn nav-filter-btn" id="btnFilterHigh" onclick="setNewsFilterType('high_relevance')" style="font-size:11.5px;padding:6px 12px;">⚡ High (≥85)</button>
+    
+    <!-- ACCORDION FILTER CONTAINER -->
+    <div class="accordion-panel">
+      <!-- Main Filter Header Bar -->
+      <div class="accordion-header-main" onclick="toggleAllAccordionSections()">
+        <div class="accordion-header-title">
+          <span>🔍 News Feed Intelligence &amp; Multi-Dimensional Filters</span>
+          <span class="accordion-badge" id="filterCountBadge">All News</span>
         </div>
-        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
-          <button class="btn btn-danger" onclick="clearAllFilters()" style="padding:6px 14px;font-size:11.5px;font-weight:700;" title="Reset search input and all dropdown filters to default">🧹 Clear Filters</button>
-          <button class="btn btn-primary" onclick="markAllReviewed()" style="padding:6px 14px;font-size:11.5px;font-weight:600;">✓ Mark All Reviewed</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-danger" onclick="event.stopPropagation(); clearAllFilters()" style="padding:4px 10px;font-size:11px;font-weight:700;" title="Reset all filters">🧹 Clear Filters</button>
+          <button class="btn btn-primary" onclick="event.stopPropagation(); markAllReviewed()" style="padding:4px 10px;font-size:11px;font-weight:600;">✓ Mark Reviewed</button>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">Toggle Sections ▾</span>
         </div>
       </div>
 
-      <!-- Row 2: Labeled Dropdown Filters in a Clean Grid -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;align-items:center;">
-        <div>
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🏢 Company</label>
-          <select id="companyFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Companies</option></select>
+      <!-- Section 1: Quick Search & Presets -->
+      <div class="accordion-item">
+        <div class="accordion-toggle-bar active" onclick="toggleAccordionSection('acc-sec1')">
+          <span>1. ⚡ Quick Search &amp; Feed Presets</span>
+          <span class="accordion-arrow">▲</span>
         </div>
-        <div>
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🏭 Industry</label>
-          <select id="industryFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Industries</option></select>
+        <div class="accordion-content open" id="acc-sec1">
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="newsFilter" placeholder="🔍 Search headlines, companies, sources, keywords..." oninput="debounceLoadNews()" style="flex:2;min-width:260px;font-size:12.5px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);">
+            <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+              <button class="nav-filter-btn active" id="btnFilterAll" onclick="setNewsFilterType('All')">All News</button>
+              <button class="nav-filter-btn" id="btnFilterLive" onclick="setNewsFilterType('live')">🔴 Live Unread</button>
+              <button class="nav-filter-btn" id="btnFilterStarred" onclick="setNewsFilterType('starred')">⭐ Starred</button>
+              <button class="nav-filter-btn" id="btnFilterHigh" onclick="setNewsFilterType('high_relevance')">⚡ High Score (≥85)</button>
+            </div>
+          </div>
         </div>
-        <div>
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🎭 Sentiment</label>
-          <select id="sentimentFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
-            <option value="All">All Sentiments</option>
-            <option value="Very Positive">Very Positive</option>
-            <option value="Positive">Positive</option>
-            <option value="Neutral">Neutral</option>
-            <option value="Negative">Negative</option>
-            <option value="Very Negative">Very Negative</option>
-          </select>
+      </div>
+
+      <!-- Section 2: Entity & Categorization Filters -->
+      <div class="accordion-item">
+        <div class="accordion-toggle-bar active" onclick="toggleAccordionSection('acc-sec2')">
+          <span>2. 🏷️ Entity, Industry, Sentiment &amp; Domain Filters</span>
+          <span class="accordion-arrow">▲</span>
         </div>
-        <div>
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🌐 Domain</label>
-          <select id="domainFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Domains</option></select>
+        <div class="accordion-content open" id="acc-sec2">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(160px, 1fr));gap:12px;align-items:center;">
+            <div>
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🏢 Company</label>
+              <select id="companyFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:6px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Companies</option></select>
+            </div>
+            <div>
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🏭 Industry</label>
+              <select id="industryFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:6px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Industries</option></select>
+            </div>
+            <div>
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🎭 Sentiment</label>
+              <select id="sentimentFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:6px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);">
+                <option value="All">All Sentiments</option>
+                <option value="Very Positive">Very Positive</option>
+                <option value="Positive">Positive</option>
+                <option value="Neutral">Neutral</option>
+                <option value="Negative">Negative</option>
+                <option value="Very Negative">Very Negative</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🌐 Domain</label>
+              <select id="domainFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:6px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Domains</option></select>
+            </div>
+          </div>
         </div>
-        <div>
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">📅 Timeline</label>
-          <select id="recencyFilter" onchange="onTerminalRecencyChange()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
-            <option value="All">All Dates</option>
-            <option value="1d">Past 24 Hours</option>
-            <option value="7d">Past 7 Days</option>
-            <option value="30d">Past 30 Days</option>
-            <option value="custom">Custom Date Range</option>
-          </select>
+      </div>
+
+      <!-- Section 3: Timeline & Date Pickers -->
+      <div class="accordion-item">
+        <div class="accordion-toggle-bar" onclick="toggleAccordionSection('acc-sec3')">
+          <span>3. 📅 Recency &amp; Custom Timeline Range</span>
+          <span class="accordion-arrow">▼</span>
         </div>
-        <div id="terminalCustomDateGroup" style="display:none;grid-column:span 2;">
-          <label style="display:block;font-size:10px;font-weight:700;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🗓 Range (From ➔ To)</label>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="date" id="dateFrom" onchange="loadNews()" title="From date" style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
-            <span style="font-size:10px;color:var(--text-muted);">to</span>
-            <input type="date" id="dateTo" onchange="loadNews()" title="To date" style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
+        <div class="accordion-content" id="acc-sec3">
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+            <div style="min-width:180px;">
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">📅 Recency Period</label>
+              <select id="recencyFilter" onchange="onTerminalRecencyChange()" style="width:100%;font-size:11.5px;padding:6px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);">
+                <option value="All">All Dates</option>
+                <option value="1d">Past 24 Hours</option>
+                <option value="7d">Past 7 Days</option>
+                <option value="30d">Past 30 Days</option>
+                <option value="custom">Custom Date Range</option>
+              </select>
+            </div>
+            <div id="terminalCustomDateGroup" style="display:none;flex:1;min-width:240px;">
+              <label style="display:block;font-size:10px;font-weight:700;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🗓 Custom Range (From ➔ To)</label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input type="date" id="dateFrom" onchange="loadNews()" title="From date" style="font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
+                <span style="font-size:11px;color:var(--text-muted);">to</span>
+                <input type="date" id="dateTo" onchange="loadNews()" title="To date" style="font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
+    <!-- NEWS HEADLINES TABLE -->
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -502,136 +837,15 @@ a.headline-link:hover { color: var(--accent-blue); }
     <div class="pagination" id="paginationControls"></div>
   </div>
 
-  <!-- ============ PORTFOLIO TAB ============ -->
-  <div id="tab-portfolio" class="tab-content">
-    <div class="mgmt-header" style="display:flex;justify-content:space-between;align-items:center;">
-      <h2>Portfolio &amp; Watchlist Manager</h2>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="bulkTogglePortfolio(1)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to active search status">✅ Select All (Active)</button>
-        <button class="btn btn-danger" onclick="bulkTogglePortfolio(0)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to inactive">⬜ Deselect All</button>
-      </div>
-    </div>
-    <div class="form-row">
-      <input type="text" id="pCompany" placeholder="Company Name">
-      <input type="text" id="pTicker" placeholder="Ticker">
-      <input type="text" id="pIndustry" placeholder="Industry">
-      <input type="text" id="pCountry" placeholder="Country" value="USA">
-      <input type="text" id="pAliases" placeholder="Aliases (comma separated)">
-      <button class="btn btn-primary" onclick="addPortfolio()">+ Add</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr>
-      <th>Company</th><th>Ticker</th><th>Industry</th><th>Country</th><th>Aliases</th><th>Active</th><th>Actions</th>
-    </tr></thead><tbody id="portfolioBody"></tbody></table></div>
-  </div>
-
-  <!-- ============ QUERY INSPECTOR TAB ============ -->
-  <div id="tab-queries" class="tab-content">
-    <div class="mgmt-header"><h2>🔬 Search Query Inspector &amp; Categorized Sweep Manager</h2></div>
-    <div class="info-box" style="line-height:1.8;">
-      💡 <strong>Why Categorized Modular Queries Yield Superior Results:</strong><br>
-      &bull; Putting 50+ OR keywords into a single search string causes search engines to truncate terms at the end.<br>
-      &bull; Running <em>distinct categorized query sweeps</em> (Financials/NAV, Credit/Redemption, M&amp;A, Governance) ensures 100% search precision for specific events.<br>
-      &bull; You can click ✏️ <strong>Edit Category</strong> below to customize names and keyword sets for each sweep.
-    </div>
-
-    <!-- ── Category Manager ── -->
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-      <h3 style="font-size:14px;color:var(--accent-green);margin:0;">📁 Modular Query Categories (Sweeps executed per company)</h3>
-      <button class="btn btn-primary" onclick="addQueryCategory()" style="font-size:12px;padding:6px 14px;">+ Add Query Category</button>
-    </div>
-    <div class="form-row" style="margin-bottom:12px;">
-      <input type="text" id="catName" placeholder="New Query Category Name (e.g. ESG &amp; Compliance)" style="flex:2;">
-      <input type="text" id="catKeywords" placeholder="Keywords (comma separated, e.g. ESG, sanction, fine)" style="flex:3;">
-    </div>
-    <div class="table-wrap" style="margin-bottom:28px;"><table><thead><tr>
-      <th>Category Sweep Name</th><th>Categorized Search Keywords</th><th>Active Sweep</th><th>Actions</th>
-    </tr></thead><tbody id="queryCategoriesBody"></tbody></table></div>
-
-    <!-- ── Interactive Live Query Tester ── -->
-    <div style="background:var(--bg-card);padding:16px 20px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:28px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:14px;font-weight:700;color:var(--accent-blue);margin:0;">⚡ Interactive Live Query Tester</h3>
-        <button class="btn btn-primary" onclick="runTestQuery()" style="font-size:12px;padding:6px 16px;" id="testQueryBtn">▶ Test Query</button>
-      </div>
-      <div class="form-row" style="margin-bottom:8px;">
-        <input type="text" id="testQueryInput" placeholder='Enter custom search query (e.g. ("Bain Capital Specialty Finance" OR "BCSF") AND ("redemption" OR "NAV") when:7d)' style="flex:1;font-family:var(--font-mono);font-size:12px;">
-        <select id="testQueryProvider" style="padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;min-width:160px;">
-          <option value="google">Google News RSS</option>
-          <option value="google_finance">Google Finance RSS</option>
-          <option value="bing">Bing News RSS</option>
-          <option value="ddg">DuckDuckGo HTML</option>
-        </select>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Assess Intelligence: Tests the query against the selected provider and shows live results.</div>
-      <div id="testQueryResults"></div>
-    </div>
-
-    <!-- ── Generated Query Preview (per company, per provider) ── -->
-    <div id="queryInspectorContainer"></div>
-  </div>
-
-  <!-- ============ INDUSTRIES TAB ============ -->
-  <div id="tab-industries" class="tab-content">
-    <div class="mgmt-header"><h2>🏭 Industry Watchlist (Synced from Portfolio)</h2></div>
-    <div class="info-box">
-      💡 <strong>Single Source of Truth:</strong> Industries are automatically populated directly from your active items in the <strong>Portfolio Tab</strong>. To add or change industries, edit the industry field on any company in the Portfolio tab.
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Industry Name</th><th>Companies Count</th><th>Actions</th></tr></thead><tbody id="industryBody"></tbody></table></div>
-  </div>
-
-  <!-- ============ KEYWORDS TAB ============ -->
-  <div id="tab-keywords" class="tab-content">
-    <div class="mgmt-header"><h2>Intelligence Keywords</h2></div>
-    <div class="form-row">
-      <input type="text" id="kwWord" placeholder="New keyword">
-      <button class="btn btn-primary" onclick="addKeyword()">+ Add</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Category</th><th>Active</th><th></th></tr></thead><tbody id="keywordBody"></tbody></table></div>
-  </div>
-
-  <!-- ============ DOMAINS TAB ============ -->
-  <div id="tab-domains" class="tab-content">
-    <div class="mgmt-header"><h2>Domain Filter &amp; Website Visibility</h2></div>
-    <div class="info-box">
-      💡 <strong>Whitelisted Search Domains</strong> control where queries look when Domain Filtering is ON.<br>
-      <strong>Discovered Website Visibility</strong> is a UI display filter — hide unwanted sources from the news table.
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
-      <h3 style="margin:0;font-size:14px;color:var(--accent-blue)">Whitelisted Search Domains</h3>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" onclick="bulkToggleDomains(1)" style="font-size:11px;padding:4px 12px;">✅ Select All</button>
-        <button class="btn btn-danger" onclick="bulkToggleDomains(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All</button>
-      </div>
-    </div>
-    <div class="form-row">
-      <input type="text" id="domName" placeholder="domain.com">
-      <button class="btn btn-primary" onclick="addDomain()">+ Add</button>
-    </div>
-    <div class="table-wrap" style="margin-bottom:24px;"><table><thead><tr><th>Domain</th><th>Active</th><th></th></tr></thead><tbody id="domainBody"></tbody></table></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
-      <h3 style="margin:0;font-size:14px;color:var(--accent-green)">Discovered Website Visibility</h3>
-      <div style="display:flex;gap:6px;">
-        <button class="btn btn-primary" onclick="bulkToggleVisibility(1)" style="font-size:11px;padding:4px 12px;">☑️ Select All (Visible)</button>
-        <button class="btn btn-danger" onclick="bulkToggleVisibility(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All (Hidden)</button>
-      </div>
-    </div>
-    <div class="form-row">
-      <input type="text" id="visFilter" placeholder="🔍 Filter..." oninput="renderVisibilityTable()" style="flex:1;">
-      <input type="text" id="visNewDomain" placeholder="Add domain to block/allow" style="flex:1;">
-      <button class="btn btn-primary" onclick="addVisibilityDomain()">+ Add</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Website</th><th>Visible</th><th></th></tr></thead><tbody id="visibilityBody"></tbody></table></div>
-  </div>
-
-  <!-- ============ EARNINGS TRACKER TAB ============ -->
+  <!-- ============ EARNINGS TRACKER TAB (Positioned right after News Terminal) ============ -->
   <div class="tab-content" id="tab-earnings">
     <div class="mgmt-header">
       <h2>📅 Portfolio Earnings &amp; Future Reporting Intelligence</h2>
       <div style="display:flex;gap:10px;align-items:center;">
-        <select id="earnCompanyFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+        <select id="earnCompanyFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
           <option value="All">All Companies</option>
         </select>
-        <select id="earnStatusFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+        <select id="earnStatusFilter" onchange="loadEarningsTab()" style="padding:6px 12px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
           <option value="All">All Statuses</option>
           <option value="CONFIRMED">Confirmed</option>
           <option value="ESTIMATED">Estimated</option>
@@ -642,11 +856,11 @@ a.headline-link:hover { color: var(--accent-blue); }
       </div>
     </div>
 
-    <div class="info-box" style="margin-bottom:16px;">
+    <div class="info-box">
       <strong>💡 Earnings &amp; Future Reporting Intelligence:</strong> Track upcoming quarterly earnings dates, conference call webcasts, and period-over-period credit metrics (NAV, NII coverage, Dividend payout, and Non-Accrual rates). Dates are extracted deterministically from press release announcements with full audit provenance.
     </div>
 
-    <h3 style="font-size:14px;color:var(--accent-blue);margin:16px 0 10px;">📅 Upcoming Reporting Calendar &amp; Webcasts</h3>
+    <h3 style="font-size:14px;color:var(--text-primary);margin:16px 0 10px;font-weight:700;">📅 Upcoming Reporting Calendar &amp; Webcasts</h3>
     <div class="table-wrap" style="margin-bottom:28px;">
       <table>
         <thead>
@@ -665,7 +879,7 @@ a.headline-link:hover { color: var(--accent-blue); }
       </table>
     </div>
 
-    <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 10px;">📊 Quarterly Financial Metrics &amp; Period-over-Period Deltas</h3>
+    <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 10px;font-weight:700;">📊 Quarterly Financial Metrics &amp; Period-over-Period Deltas</h3>
     <div class="table-wrap">
       <table>
         <thead>
@@ -687,85 +901,686 @@ a.headline-link:hover { color: var(--accent-blue); }
     </div>
   </div>
 
-  <!-- ============ SETTINGS TAB ============ -->
+  <!-- ============ PORTFOLIO TAB ============ -->
+  <div id="tab-portfolio" class="tab-content">
+    <div class="mgmt-header">
+      <h2>Portfolio &amp; Watchlist Manager</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="bulkTogglePortfolio(1)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to active search status">✅ Select All (Active)</button>
+        <button class="btn btn-danger" onclick="bulkTogglePortfolio(0)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to inactive">⬜ Deselect All</button>
+      </div>
+    </div>
+    <div class="form-row" style="flex-wrap:wrap;gap:8px;">
+      <input type="text" id="pCompany" placeholder="Company Name" style="flex:2;min-width:160px;">
+      <input type="text" id="pTicker" placeholder="Ticker" style="flex:1;min-width:80px;">
+      <select id="pIndustrySelect" style="flex:2;min-width:180px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;"></select>
+      <input type="text" id="pCountry" placeholder="Country" value="USA" style="flex:1;min-width:80px;">
+      <input type="text" id="pAliases" placeholder="Aliases (comma separated)" style="flex:3;min-width:200px;">
+      <button class="btn btn-primary" onclick="addPortfolio()">+ Add Company</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Company</th><th>Ticker</th><th>Industry &amp; Code</th><th>Country</th><th>Aliases</th><th>Active</th><th>Actions</th>
+    </tr></thead><tbody id="portfolioBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ QUERY INSPECTOR TAB ============ -->
+  <div id="tab-queries" class="tab-content">
+    <div class="mgmt-header"><h2>🔬 Search Query Inspector &amp; Scoped Sweep Manager</h2></div>
+    <div class="info-box" style="line-height:1.8;">
+      💡 <strong>Industry-Aware Modular Query Architecture:</strong><br>
+      &bull; <strong>🌐 Universal Queries</strong> (Earnings, Bankruptcy/Default, Ratings, Governance) execute for all portfolio entities.<br>
+      &bull; <strong>🏭 Industry Queries</strong> (e.g. BDC NAV/NII, Telecom Spectrum/ARPU, Energy Rig Count/OPEC) execute only for matching mapped entities.<br>
+      &bull; <strong>⚡ Query-Level Deduplication</strong>: Identical search strings execute once while preserving multi-category analytical dimensions.
+    </div>
+
+    <!-- Category Manager -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <h3 style="font-size:14px;color:var(--text-primary);margin:0;font-weight:700;">📁 Query Category Sweeps</h3>
+        <select id="qcScopeFilter" onchange="filterQueryCategoriesTable()" style="padding:4px 10px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:11px;">
+          <option value="ALL">🔍 All Scopes</option>
+          <option value="UNIVERSAL">🌐 Universal Only</option>
+          <option value="INDUSTRY">🏭 Industry-Specific Only</option>
+          <option value="COMPANY">🏢 Company Overrides Only</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="openAddCatModal()" style="font-size:12px;padding:6px 14px;">+ Add Query Category</button>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:28px;"><table><thead><tr>
+      <th>Sweep Name</th><th>Scope</th><th>Target Risk &amp; Intel Dimension</th><th>Priority</th><th>Keywords</th><th>Ver.</th><th>Active</th><th>Actions</th>
+    </tr></thead><tbody id="queryCategoriesBody"></tbody></table></div>
+
+    <!-- Interactive Live Query Tester -->
+    <div class="settings-card" style="margin-bottom:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="font-size:14px;font-weight:700;color:var(--text-primary);margin:0;">⚡ Interactive Live Query Tester</h3>
+        <button class="btn btn-primary" onclick="runTestQuery()" style="font-size:12px;padding:6px 16px;" id="testQueryBtn">▶ Test Query</button>
+      </div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <input type="text" id="testQueryInput" placeholder='Enter custom search query (e.g. ("Chevron" OR "CVX") AND ("drilling" OR "rig count") when:7d)' style="flex:1;font-family:var(--font-mono);font-size:12px;">
+        <select id="testQueryProvider" style="padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;min-width:160px;">
+          <option value="google">Google News RSS</option>
+          <option value="google_finance">Google Finance RSS</option>
+          <option value="bing">Bing News RSS</option>
+          <option value="ddg">DuckDuckGo HTML</option>
+        </select>
+      </div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-bottom:10px;">Assess Intelligence: Tests the query against the selected provider and shows live results.</div>
+      <div id="testQueryResults"></div>
+    </div>
+
+    <!-- Generated Query Preview -->
+    <div id="queryInspectorContainer"></div>
+  </div>
+
+  <!-- ============ INDUSTRIES TAB ============ -->
+  <div id="tab-industries" class="tab-content">
+    <div class="mgmt-header">
+      <h2>🏭 Industry Catalog &amp; Risk Profiles</h2>
+      <button class="btn btn-primary" onclick="openAddIndustryModal()" style="font-size:12px;padding:6px 14px;">+ Add New Industry</button>
+    </div>
+    <div class="info-box">
+      💡 <strong>Stable Identifier Architecture:</strong> Industries use immutable codes (e.g. <code>ENERGY</code>, <code>TELECOM</code>, <code>BDC</code>). You can safely rename display names or toggle active status anytime without breaking portfolio company mappings or historical news intelligence.
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Industry Display Name</th><th>Code (Stable ID)</th><th>Risk Profile Template</th><th>Active Companies</th><th>Category Sweeps</th><th>Status</th><th>Actions</th>
+    </tr></thead><tbody id="industryBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ KEYWORDS TAB ============ -->
+  <div id="tab-keywords" class="tab-content">
+    <div class="mgmt-header"><h2>Intelligence Keywords</h2></div>
+    <div class="form-row">
+      <input type="text" id="kwWord" placeholder="New keyword">
+      <button class="btn btn-primary" onclick="addKeyword()">+ Add</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Category</th><th>Active</th><th></th></tr></thead><tbody id="keywordBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ DOMAINS TAB ============ -->
+  <div id="tab-domains" class="tab-content">
+    <div class="mgmt-header"><h2>Domain Filter &amp; Website Visibility</h2></div>
+    <div class="info-box">
+      💡 <strong>Whitelisted Search Domains</strong> control where queries look when Domain Filtering is ON.<br>
+      <strong>Discovered Website Visibility</strong> is a UI display filter — hide unwanted sources from the news table.
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
+      <h3 style="margin:0;font-size:14px;color:var(--text-primary);font-weight:700;">Whitelisted Search Domains</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" onclick="bulkToggleDomains(1)" style="font-size:11px;padding:4px 12px;">✅ Select All</button>
+        <button class="btn btn-danger" onclick="bulkToggleDomains(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="text" id="domName" placeholder="domain.com">
+      <button class="btn btn-primary" onclick="addDomain()">+ Add</button>
+    </div>
+    <div class="table-wrap" style="margin-bottom:24px;"><table><thead><tr><th>Domain</th><th>Active</th><th></th></tr></thead><tbody id="domainBody"></tbody></table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
+      <h3 style="margin:0;font-size:14px;color:var(--accent-green);font-weight:700;">Discovered Website Visibility</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" onclick="bulkToggleVisibility(1)" style="font-size:11px;padding:4px 12px;">☑️ Select All (Visible)</button>
+        <button class="btn btn-danger" onclick="bulkToggleVisibility(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All (Hidden)</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="text" id="visFilter" placeholder="🔍 Filter..." oninput="renderVisibilityTable()" style="flex:1;">
+      <input type="text" id="visNewDomain" placeholder="Add domain to block/allow" style="flex:1;">
+      <button class="btn btn-primary" onclick="addVisibilityDomain()">+ Add</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Website</th><th>Visible</th><th></th></tr></thead><tbody id="visibilityBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ SETTINGS TAB (Includes Audio/Sound & Sensitive Reset Data) ============ -->
   <div id="tab-settings" class="tab-content">
-    <div class="mgmt-header"><h2>Application Settings</h2></div>
-    <div style="max-width:650px;">
-      <h3 style="font-size:14px;color:var(--accent-blue);margin-bottom:14px;">⚙️ Discovery &amp; Search</h3>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Recency Window</label>
-        <select id="setRecencyWindow" style="flex:1;" onchange="toggleCustomSettingsDateRange()"><option value="1d">Past 24 Hours</option><option value="7d">Past 7 Days</option><option value="30d">Past 30 Days</option><option value="custom">Custom Date Range (Timeline)</option><option value="any">Any Time</option></select></div>
-      <div class="form-row" id="setCustomDateRow" style="display:none;"><label style="width:220px;padding:8px 0;font-size:13px;">Custom Search Timeline</label>
-        <div style="flex:1;display:flex;gap:8px;align-items:center;">
-          <input type="date" id="setCustomStartDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
-          <span style="font-size:12px;color:var(--text-secondary)">to</span>
-          <input type="date" id="setCustomEndDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
-        </div></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Refresh Interval (min)</label><input type="number" id="setRefresh" min="1" max="60" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Min Relevance Ingest</label><input type="number" id="setMinIngest" min="0" max="100" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Min Relevance Notify</label><input type="number" id="setMinRelevance" min="0" max="100" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Stagger Delay (sec)</label><input type="number" id="setStagger" min="0.5" max="10" step="0.5" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Parallel Workers</label><input type="number" id="setWorkers" min="1" max="8" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Domain Filtering</label>
-        <select id="setDomainFilter" style="flex:1;"><option value="0">Off (Full Web)</option><option value="1">On (Whitelisted Only)</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">FinVADER Sentiment Engine</label>
-        <select id="setFinVader" style="flex:1;"><option value="0">Off (Contextual Credit Engine)</option><option value="1">On (Use FinVADER Library)</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">fin-sentiment Engine</label>
-        <select id="setFinSentiment" style="flex:1;"><option value="0">Off</option><option value="1">On (PyTorch Fin-Sentiment)</option></select></div>
-      <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 14px;">🔍 Provider Toggles</h3>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google News</label><select id="setGoogle" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google Finance RSS</label><select id="setGoogleFinance" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Bing News</label><select id="setBing" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">DuckDuckGo</label><select id="setDDG" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">GDELT</label><select id="setGDELT" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <h3 style="font-size:14px;color:var(--accent-purple);margin:24px 0 14px;">🔔 Audio Notifications</h3>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Sound Alerts</label><select id="setEnableSound" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Volume</label><input type="range" id="setSoundVolume" min="0.1" max="1.0" step="0.05" style="flex:1;"></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Quiet Hours</label><select id="setQuietHours" style="flex:1;"><option value="0">Disabled</option><option value="1">Enabled</option></select></div>
-      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Quiet Range</label><input type="time" id="setQuietStart" value="22:00" style="width:100px;"><span style="align-self:center;padding:0 4px;">to</span><input type="time" id="setQuietEnd" value="07:00" style="width:100px;"></div>
-      <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);display:flex;gap:12px;">
-        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
-        <button class="btn btn-danger" onclick="confirmResetAllNews()">🗑️ Reset Data</button>
+    <div class="mgmt-header"><h2>⚙️ System &amp; Application Settings</h2></div>
+
+    <div style="max-width:760px;">
+      <!-- Section 0: Brand & Canvas Color Code Customizer (NEW) -->
+      <div class="settings-card" style="border: 1px solid var(--border-bright);">
+        <h3 style="font-size:14px;color:var(--text-primary);margin-bottom:12px;font-weight:800;display:flex;align-items:center;justify-content:space-between;">
+          <span>🎨 Brand &amp; Canvas Color Code Customizer</span>
+          <button class="btn btn-secondary" onclick="resetColorPalette()" style="font-size:11px;padding:4px 10px;" title="Reset back to official MUFG Bank Red (#d62427) &amp; Grey (#595a5a)">🔄 Reset to MUFG Default</button>
+        </h3>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+          Pick custom color codes or type exact hex values. Changes update instantly across the entire interface and persist across sessions.
+        </p>
+
+        <!-- Color Inputs -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;margin-bottom:18px;">
+          <!-- Primary / Canvas Background Color -->
+          <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+              Primary / Canvas Color
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="pickerPrimaryColor" value="#d62427" oninput="onColorPickerChange()" style="width:42px;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:transparent;">
+              <input type="text" id="hexPrimaryColor" value="#d62427" oninput="onHexInputChange()" placeholder="#d62427" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;text-transform:uppercase;padding:8px 10px;border-radius:6px;border:1px solid var(--border-input);background:var(--bg-card);color:var(--text-primary);">
+            </div>
+          </div>
+
+          <!-- Secondary Brand Grey -->
+          <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+              Brand Grey (Labels &amp; Borders)
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="pickerSecondaryColor" value="#595a5a" oninput="onColorPickerChange()" style="width:42px;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:transparent;">
+              <input type="text" id="hexSecondaryColor" value="#595a5a" oninput="onHexInputChange()" placeholder="#595a5a" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;text-transform:uppercase;padding:8px 10px;border-radius:6px;border:1px solid var(--border-input);background:var(--bg-card);color:var(--text-primary);">
+            </div>
+          </div>
+
+          <!-- Accent Highlight Color -->
+          <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;">
+            <label style="display:block;font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">
+              Accent &amp; Link Highlight
+            </label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="color" id="pickerAccentColor" value="#38bdf8" oninput="onColorPickerChange()" style="width:42px;height:38px;padding:2px;border-radius:6px;border:1px solid var(--border);cursor:pointer;background:transparent;">
+              <input type="text" id="hexAccentColor" value="#38bdf8" oninput="onHexInputChange()" placeholder="#38bdf8" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;text-transform:uppercase;padding:8px 10px;border-radius:6px;border:1px solid var(--border-input);background:var(--bg-card);color:var(--text-primary);">
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick 1-Click Palette Presets -->
+        <div style="margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">
+            ⚡ Quick 1-Click Palettes
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="applyPresetPalette('#d62427','#595a5a','#38bdf8')" style="font-size:11px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#d62427;display:inline-block;"></span> 🔴 MUFG Red
+            </button>
+            <button class="btn btn-secondary" onclick="applyPresetPalette('#8f1215','#595a5a','#60a5fa')" style="font-size:11px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#8f1215;display:inline-block;"></span> 🏛️ Burgundy
+            </button>
+            <button class="btn btn-secondary" onclick="applyPresetPalette('#18191c','#64748b','#38bdf8')" style="font-size:11px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#18191c;display:inline-block;"></span> 🌑 Obsidian
+            </button>
+            <button class="btn btn-secondary" onclick="applyPresetPalette('#0f172a','#475569','#0ea5e9')" style="font-size:11px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#0f172a;display:inline-block;"></span> 🔵 Corporate Navy
+            </button>
+            <button class="btn btn-secondary" onclick="applyPresetPalette('#064e3b','#52525b','#10b981')" style="font-size:11px;padding:5px 12px;display:inline-flex;align-items:center;gap:6px;">
+              <span style="width:10px;height:10px;border-radius:50%;background:#064e3b;display:inline-block;"></span> 🟢 ESG Emerald
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center;padding-top:12px;border-top:1px solid var(--border-subtle);">
+          <button class="btn btn-primary" onclick="saveCustomPalette()" style="font-size:12px;padding:7px 18px;">💾 Save Custom Colors</button>
+          <span id="paletteSaveStatus" style="font-size:11.5px;color:var(--accent-green);font-weight:600;display:none;">✓ Palette applied and saved!</span>
+        </div>
+      </div>
+
+      <!-- Section 1: Audio & Alerts Preferences (Moved from header) -->
+      <div class="settings-card">
+        <h3 style="font-size:14px;color:var(--text-primary);margin-bottom:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between;">
+          <span>🔔 Audio &amp; Alert Notifications</span>
+          <button class="btn btn-secondary" onclick="testSoundAlert()" style="font-size:11px;padding:4px 10px;">🔊 Test Sound</button>
+        </h3>
+        <div class="form-row">
+          <label style="width:220px;padding:8px 0;font-size:13px;font-weight:600;color:var(--text-mufg-grey);">Sound Alerts</label>
+          <select id="setEnableSound" style="flex:1;" onchange="updateAudioButtonState()">
+            <option value="1">Enabled (Sound ON)</option>
+            <option value="0">Disabled (Sound OFF)</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="width:220px;padding:8px 0;font-size:13px;font-weight:600;color:var(--text-mufg-grey);">Volume Level</label>
+          <input type="range" id="setSoundVolume" min="0.1" max="1.0" step="0.05" style="flex:1;">
+        </div>
+        <div class="form-row">
+          <label style="width:220px;padding:8px 0;font-size:13px;font-weight:600;color:var(--text-mufg-grey);">Quiet Hours</label>
+          <select id="setQuietHours" style="flex:1;">
+            <option value="0">Disabled</option>
+            <option value="1">Enabled</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label style="width:220px;padding:8px 0;font-size:13px;font-weight:600;color:var(--text-mufg-grey);">Quiet Hours Range</label>
+          <input type="time" id="setQuietStart" value="22:00" style="width:100px;">
+          <span style="align-self:center;padding:0 6px;color:var(--text-muted);">to</span>
+          <input type="time" id="setQuietEnd" value="07:00" style="width:100px;">
+        </div>
+      </div>
+
+      <!-- Section 2: Discovery & Intelligence Engine -->
+      <div class="settings-card">
+        <h3 style="font-size:14px;color:var(--accent-blue);margin-bottom:14px;font-weight:700;">📡 Discovery &amp; Search Engine</h3>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Recency Window</label>
+          <select id="setRecencyWindow" style="flex:1;" onchange="toggleCustomSettingsDateRange()"><option value="1d">Past 24 Hours</option><option value="7d">Past 7 Days</option><option value="30d">Past 30 Days</option><option value="custom">Custom Date Range (Timeline)</option><option value="any">Any Time</option></select></div>
+        <div class="form-row" id="setCustomDateRow" style="display:none;"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Custom Search Timeline</label>
+          <div style="flex:1;display:flex;gap:8px;align-items:center;">
+            <input type="date" id="setCustomStartDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+            <span style="font-size:12px;color:var(--text-secondary)">to</span>
+            <input type="date" id="setCustomEndDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+          </div></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Refresh Interval (min)</label><input type="number" id="setRefresh" min="1" max="60" style="flex:1;"></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Min Relevance Ingest</label><input type="number" id="setMinIngest" min="0" max="100" style="flex:1;"></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Min Relevance Notify</label><input type="number" id="setMinRelevance" min="0" max="100" style="flex:1;"></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Stagger Delay (sec)</label><input type="number" id="setStagger" min="0.5" max="10" step="0.5" style="flex:1;"></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Parallel Workers</label><input type="number" id="setWorkers" min="1" max="8" style="flex:1;"></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Domain Filtering</label>
+          <select id="setDomainFilter" style="flex:1;"><option value="0">Off (Full Web)</option><option value="1">On (Whitelisted Only)</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">FinVADER Sentiment Engine</label>
+          <select id="setFinVader" style="flex:1;"><option value="0">Off (Contextual Credit Engine)</option><option value="1">On (Use FinVADER Library)</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">fin-sentiment Engine</label>
+          <select id="setFinSentiment" style="flex:1;"><option value="0">Off</option><option value="1">On (PyTorch Fin-Sentiment)</option></select></div>
+
+        <h4 style="font-size:13px;color:var(--accent-green);margin:20px 0 10px;font-weight:700;">🔍 Provider Integrations</h4>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Google News RSS</label><select id="setGoogle" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Google Finance RSS</label><select id="setGoogleFinance" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">Bing News</label><select id="setBing" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">DuckDuckGo</label><select id="setDDG" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+        <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;color:var(--text-mufg-grey);">GDELT</label><select id="setGDELT" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+          <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        </div>
+      </div>
+
+      <!-- Section 3: Sensitive Operations & Danger Zone (Reset Data moved here) -->
+      <div class="settings-card danger-zone">
+        <h3 style="font-size:14px;color:var(--accent-red-semantic);margin-bottom:8px;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>⚠️ Sensitive Operations &amp; Data Management</span>
+        </h3>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;line-height:1.6;">
+          These operations directly purge stored headline datasets, reset cached results, or clear historical telemetry. Please proceed with caution.
+        </p>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <button class="btn btn-danger" onclick="confirmResetAllNews()" style="padding:8px 18px;font-weight:700;">🗑️ Reset All News Data</button>
+          <span style="font-size:11.5px;color:var(--text-muted);">Permanently removes all ingested news headlines and review statuses.</span>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- =========================================================================
+     MODALS
+     ========================================================================= -->
 <!-- EDIT PORTFOLIO MODAL -->
 <div id="editPortfolioModal" class="modal-overlay">
-  <div class="modal">
+  <div class="modal" style="max-width:520px;width:95%;">
     <h3>✏️ Edit Portfolio Item</h3>
     <input type="hidden" id="editPId">
-    <div class="form-row" style="flex-direction:column;gap:10px;">
+    <div class="form-row" style="flex-direction:column;gap:12px;">
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Company Name</label><input type="text" id="editPCompany" style="width:100%;"></div>
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Ticker</label><input type="text" id="editPTicker" style="width:100%;"></div>
-      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Industry</label><input type="text" id="editPIndustry" style="width:100%;"></div>
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Industry</label>
+        <select id="editPIndustrySelect" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;"></select>
+      </div>
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Country</label><input type="text" id="editPCountry" style="width:100%;"></div>
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Aliases (comma separated)</label><input type="text" id="editPAliases" style="width:100%;"></div>
     </div>
-    <div class="modal-actions"><button class="btn" onclick="closeEditModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditPortfolio()">💾 Save</button></div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditPortfolio()">💾 Save Changes</button></div>
   </div>
 </div>
 
-<!-- EDIT CATEGORY MODAL -->
-<div id="editCategoryModal" class="modal-overlay">
-  <div class="modal">
-    <h3>✏️ Edit Query Category</h3>
-    <input type="hidden" id="editCatId">
-    <div class="form-row" style="flex-direction:column;gap:10px;">
-      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Category Name</label><input type="text" id="editCatName" style="width:100%;"></div>
-      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Keywords (comma separated)</label><input type="text" id="editCatKeywords" style="width:100%;"></div>
+<!-- ADD / EDIT QUERY CATEGORY MODAL -->
+<div id="categoryModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:580px;width:95%;">
+    <h3 id="catModalTitle">📁 Configure Query Category Sweep</h3>
+    <input type="hidden" id="catModalId">
+    <div class="form-row" style="flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Category Sweep Name</label>
+        <input type="text" id="catModalName" placeholder="e.g. Upstream Production &amp; Rig Count" style="width:100%;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Scope Type</label>
+          <select id="catModalScopeType" onchange="onCatModalScopeChange()" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+            <option value="UNIVERSAL">🌐 Universal (All Entities)</option>
+            <option value="INDUSTRY">🏭 Industry-Specific</option>
+            <option value="COMPANY">🏢 Company Override</option>
+          </select>
+        </div>
+        <div id="catModalIndustryGroup" style="display:none;">
+          <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Target Industry</label>
+          <select id="catModalIndustrySelect" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;"></select>
+        </div>
+        <div id="catModalCompanyGroup" style="display:none;">
+          <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Target Company</label>
+          <select id="catModalCompanySelect" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;"></select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Risk &amp; Intel Dimension</label>
+          <select id="catModalDimension" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+            <option value="Earnings / Cash Flow">Earnings / Cash Flow</option>
+            <option value="Leverage / Capital">Leverage / Capital</option>
+            <option value="Liquidity">Liquidity</option>
+            <option value="Asset Quality / Asset Base">Asset Quality / Asset Base</option>
+            <option value="Governance / Legal">Governance / Legal</option>
+            <option value="Market / Regulatory">Market / Regulatory</option>
+            <option value="Rating / External Credit Signal">Rating / External Credit Signal</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Priority (Weight)</label>
+          <select id="catModalPriority" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+            <option value="100">100 - Critical / Default / Bankruptcy</option>
+            <option value="95">95 - Rating Actions</option>
+            <option value="90">90 - Debt &amp; Capital Structure</option>
+            <option value="85">85 - High Materiality / Asset Quality</option>
+            <option value="80">80 - Governance &amp; Enforcement</option>
+            <option value="75">75 - Industry Operational Metrics</option>
+            <option value="70" selected>70 - Earnings &amp; Financial Results</option>
+            <option value="60">60 - M&amp;A &amp; Deals</option>
+            <option value="50">50 - Routine / General</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Keywords (comma-separated)</label>
+        <textarea id="catModalKeywords" placeholder="drilling, rig count, barrel output, OPEC, reserves" style="width:100%;height:65px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;resize:vertical;"></textarea>
+      </div>
     </div>
-    <div class="modal-actions"><button class="btn" onclick="closeEditCategoryModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditCategory()">💾 Save</button></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCategoryModal()">💾 Save Category Sweep</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD INDUSTRY MODAL -->
+<div id="addIndustryModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:480px;width:95%;">
+    <h3>🏭 Add New Industry to Catalog</h3>
+    <div class="form-row" style="flex-direction:column;gap:12px;">
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Industry Display Name</label>
+        <input type="text" id="addIndName" placeholder="e.g. Semiconductors &amp; Hardware" oninput="autoPopulateIndCode()" style="width:100%;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Stable Code / ID (Immutable Foreign Key)</label>
+        <input type="text" id="addIndId" placeholder="e.g. SEMICONDUCTORS" style="width:100%;font-family:var(--font-mono);text-transform:uppercase;">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Risk Profile Template</label>
+        <select id="addIndRiskProfile" style="width:100%;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+          <option value="STANDARD_CORP">STANDARD_CORP (General Corporates)</option>
+          <option value="BDC">BDC (Private Credit &amp; Direct Lending)</option>
+          <option value="BANKING">BANKING (Commercial &amp; Regional Banks)</option>
+          <option value="ENERGY">ENERGY (Oil, Gas &amp; Utilities)</option>
+          <option value="TELECOM">TELECOM (Telecommunications &amp; Media)</option>
+          <option value="TECH">TECH (Software, Cloud &amp; SaaS)</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeAddIndustryModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAddIndustry()">+ Create Industry</button>
+    </div>
+  </div>
+</div>
+
+<!-- RENAME INDUSTRY MODAL -->
+<div id="renameIndustryModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:440px;width:95%;">
+    <h3>✏️ Rename Industry Display Name</h3>
+    <input type="hidden" id="renameIndId">
+    <div class="form-row" style="flex-direction:column;gap:12px;">
+      <div style="font-size:12px;color:var(--text-secondary);">
+        Industry Code: <strong id="renameIndCode" style="font-family:var(--font-mono);color:var(--accent-blue);"></strong>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">New Display Name</label>
+        <input type="text" id="renameIndName" style="width:100%;">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeRenameIndustryModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRenameIndustry()">💾 Update Name</button>
+    </div>
+  </div>
+</div>
+
+<!-- CREDIT RISK MATRIX MODAL -->
+<div id="creditRiskModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card" style="max-width:620px;width:95%;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <h3 id="cmHeadline" style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Headline</h3>
+        <div id="cmCompany" style="font-size:11px;color:var(--accent-blue);font-weight:700;">Company</div>
+      </div>
+      <button onclick="closeCreditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <span id="cmRiskPill" style="background:rgba(239,68,68,0.25);color:#F87171;border:1px solid #EF4444;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:800;">HIGH RISK</span>
+      <span id="cmSignal" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;">Signal</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-secondary);align-self:center;">Baseline VADER: <b id="cmVader">0.0</b> | Confidence: <b id="cmConfidence">90%</b></span>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Multi-Dimensional Risk Breakdown</div>
+    <div id="cmDims"></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-mufg-grey);text-transform:uppercase;letter-spacing:0.5px;margin-top:14px;margin-bottom:6px;">Detected Signal Explanations &amp; Context Reasons</div>
+    <div id="cmReasons"></div>
+
+    <div style="text-align:right;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeCreditModal()">Close</button>
+    </div>
   </div>
 </div>
 
 <!-- FOOTER -->
 <div class="footer">
-  <span id="footerLeft">System Ready</span>
+  <span id="footerLeft">MUFG Bank Intelligence Terminal | System Ready</span>
   <span id="footerRight">News Intelligence Terminal v2.0.0</span>
 </div>
 
 <script>
+// =========================================================================
+// THEME MANAGEMENT (DARK / LIGHT TOGGLE)
+// =========================================================================
+function getStoredTheme() {
+  return localStorage.getItem('mufg_theme') || 'dark';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('mufg_theme', theme);
+  const icon = document.getElementById('themeToggleIcon');
+  const text = document.getElementById('themeToggleText');
+  if (theme === 'light') {
+    if (icon) icon.textContent = '🌙';
+    if (text) text.textContent = 'Dark Mode';
+  } else {
+    if (icon) icon.textContent = '☀️';
+    if (text) text.textContent = 'Light Mode';
+  }
+  // Re-apply active custom palette onto the newly switched theme
+  const pal = getStoredPalette();
+  applyCustomPalette(pal.primary, pal.secondary, pal.accent, false);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+}
+
+// =========================================================================
+// CUSTOM COLOR PALETTE ENGINE
+// =========================================================================
+function hexToRgb(hex) {
+  hex = hex.replace(/^#/, '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const num = parseInt(hex, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(x => {
+    const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  }).join('');
+}
+
+function adjustBrightness(hex, percent) {
+  const rgb = hexToRgb(hex);
+  const factor = 1 + (percent / 100);
+  return rgbToHex(rgb.r * factor, rgb.g * factor, rgb.b * factor);
+}
+
+function hexToRgba(hex, alpha) {
+  const rgb = hexToRgb(hex);
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${alpha})`;
+}
+
+function getStoredPalette() {
+  try {
+    const raw = localStorage.getItem('mufg_custom_palette');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { primary: '#d62427', secondary: '#595a5a', accent: '#38bdf8' };
+}
+
+function applyCustomPalette(primary, secondary, accent, save=false) {
+  if (!primary || !primary.startsWith('#')) primary = '#d62427';
+  if (!secondary || !secondary.startsWith('#')) secondary = '#595a5a';
+  if (!accent || !accent.startsWith('#')) accent = '#38bdf8';
+
+  const doc = document.documentElement;
+  const darkShade = adjustBrightness(primary, -35);
+  const deepShade = adjustBrightness(primary, -65);
+  const dimShade = hexToRgba(primary, 0.15);
+  const currentTheme = doc.getAttribute('data-theme') || 'dark';
+
+  doc.style.setProperty('--mufg-red', primary);
+  doc.style.setProperty('--mufg-grey', secondary);
+  doc.style.setProperty('--accent-blue', accent);
+  doc.style.setProperty('--text-accent', accent);
+  doc.style.setProperty('--mufg-red-dark', darkShade);
+  doc.style.setProperty('--mufg-red-deep', deepShade);
+  doc.style.setProperty('--mufg-red-dim', dimShade);
+
+  if (currentTheme === 'dark') {
+    doc.style.setProperty('--bg-primary', darkShade);
+    doc.style.setProperty('--bg-page-gradient', `radial-gradient(ellipse at 50% 0%, ${primary} 0%, ${darkShade} 55%, ${deepShade} 100%)`);
+    doc.style.setProperty('--gradient-header', `linear-gradient(135deg, ${primary} 0%, ${deepShade} 100%)`);
+  } else {
+    doc.style.setProperty('--bg-primary', primary);
+    doc.style.setProperty('--bg-page-gradient', `linear-gradient(145deg, ${primary} 0%, ${darkShade} 50%, ${deepShade} 100%)`);
+    doc.style.setProperty('--gradient-header', `linear-gradient(135deg, ${darkShade} 0%, ${deepShade} 100%)`);
+  }
+
+  // Sync inputs
+  const pPick = document.getElementById('pickerPrimaryColor');
+  const pHex = document.getElementById('hexPrimaryColor');
+  const sPick = document.getElementById('pickerSecondaryColor');
+  const sHex = document.getElementById('hexSecondaryColor');
+  const aPick = document.getElementById('pickerAccentColor');
+  const aHex = document.getElementById('hexAccentColor');
+
+  if (pPick && pPick.value !== primary) pPick.value = primary;
+  if (pHex && pHex.value !== primary) pHex.value = primary;
+  if (sPick && sPick.value !== secondary) sPick.value = secondary;
+  if (sHex && sHex.value !== secondary) sHex.value = secondary;
+  if (aPick && aPick.value !== accent) aPick.value = accent;
+  if (aHex && aHex.value !== accent) aHex.value = accent;
+
+  if (save) {
+    localStorage.setItem('mufg_custom_palette', JSON.stringify({ primary, secondary, accent }));
+  }
+}
+
+function onColorPickerChange() {
+  const p = document.getElementById('pickerPrimaryColor').value;
+  const s = document.getElementById('pickerSecondaryColor').value;
+  const a = document.getElementById('pickerAccentColor').value;
+  applyCustomPalette(p, s, a, false);
+}
+
+function onHexInputChange() {
+  let p = document.getElementById('hexPrimaryColor').value.trim();
+  let s = document.getElementById('hexSecondaryColor').value.trim();
+  let a = document.getElementById('hexAccentColor').value.trim();
+  if (p && !p.startsWith('#')) p = '#' + p;
+  if (s && !s.startsWith('#')) s = '#' + s;
+  if (a && !a.startsWith('#')) a = '#' + a;
+  if (/^#[0-9A-Fa-f]{6}$/.test(p) && /^#[0-9A-Fa-f]{6}$/.test(s) && /^#[0-9A-Fa-f]{6}$/.test(a)) {
+    applyCustomPalette(p, s, a, false);
+  }
+}
+
+function applyPresetPalette(p, s, a) {
+  applyCustomPalette(p, s, a, true);
+  const st = document.getElementById('paletteSaveStatus');
+  if (st) {
+    st.style.display = 'inline';
+    st.textContent = `✓ Applied ${p} preset!`;
+    setTimeout(() => { st.style.display = 'none'; }, 2500);
+  }
+}
+
+function saveCustomPalette() {
+  const p = document.getElementById('pickerPrimaryColor').value;
+  const s = document.getElementById('pickerSecondaryColor').value;
+  const a = document.getElementById('pickerAccentColor').value;
+  applyCustomPalette(p, s, a, true);
+  const st = document.getElementById('paletteSaveStatus');
+  if (st) {
+    st.style.display = 'inline';
+    st.textContent = `✓ Custom color codes saved!`;
+    setTimeout(() => { st.style.display = 'none'; }, 3000);
+  }
+}
+
+function resetColorPalette() {
+  localStorage.removeItem('mufg_custom_palette');
+  applyCustomPalette('#d62427', '#595a5a', '#38bdf8', false);
+  const st = document.getElementById('paletteSaveStatus');
+  if (st) {
+    st.style.display = 'inline';
+    st.textContent = `✓ Reset to default MUFG Red & Grey!`;
+    setTimeout(() => { st.style.display = 'none'; }, 2500);
+  }
+}
+
+// Initial theme & palette application
+applyTheme(getStoredTheme());
+const initPal = getStoredPalette();
+applyCustomPalette(initPal.primary, initPal.secondary, initPal.accent, false);
+
+// =========================================================================
+// ACCORDION MANAGEMENT
+// =========================================================================
+function toggleAccordionSection(secId) {
+  const content = document.getElementById(secId);
+  if (!content) return;
+  const toggleBar = content.previousElementSibling;
+  const isOpen = content.classList.contains('open');
+  if (isOpen) {
+    content.classList.remove('open');
+    if (toggleBar) toggleBar.classList.remove('active');
+  } else {
+    content.classList.add('open');
+    if (toggleBar) toggleBar.classList.add('active');
+  }
+}
+
+function toggleAllAccordionSections() {
+  const sections = document.querySelectorAll('.accordion-content');
+  const anyOpen = Array.from(sections).some(s => s.classList.contains('open'));
+  sections.forEach(s => {
+    const bar = s.previousElementSibling;
+    if (anyOpen) {
+      s.classList.remove('open');
+      if (bar) bar.classList.remove('active');
+    } else {
+      s.classList.add('open');
+      if (bar) bar.classList.add('active');
+    }
+  });
+}
+
 // =========================================================================
 // GLOBAL STATE
 // =========================================================================
@@ -782,7 +1597,7 @@ let currentPage = 1;
 let debounceTimer = null;
 
 // =========================================================================
-// AUDIO ENGINE
+// AUDIO ENGINE & ALERT SOUND
 // =========================================================================
 class AudioEngine {
   constructor() { this.ctx = null; }
@@ -791,7 +1606,7 @@ class AudioEngine {
     if (cfg.enable_sound_alerts === false) return;
     this.init(); if (!this.ctx) return;
     if (this.ctx.state === 'suspended') this.ctx.resume();
-    const vol = parseFloat(cfg.sound_volume || 0.8), now = this.ctx.currentTime;
+    const vol = parseFloat(cfg.sound_volume !== undefined ? cfg.sound_volume : 0.8), now = this.ctx.currentTime;
     const g = this.ctx.createGain(); g.gain.setValueAtTime(vol * 0.3, now); g.connect(this.ctx.destination);
     const o = this.ctx.createOscillator();
     if (type==='critical') { o.type='sawtooth'; o.frequency.setValueAtTime(880,now); o.frequency.setValueAtTime(1046,now+.15); }
@@ -801,10 +1616,14 @@ class AudioEngine {
 }
 const audio = new AudioEngine();
 
-function toggleAudioAlerts() {
-  appSettings.enable_sound_alerts = !appSettings.enable_sound_alerts;
-  document.getElementById('audioToggleBtn').textContent = appSettings.enable_sound_alerts ? '🔊 Sound: ON' : '🔇 Sound: OFF';
-  if (appSettings.enable_sound_alerts) audio.play('high', appSettings);
+function testSoundAlert() {
+  const vol = parseFloat(document.getElementById('setSoundVolume')?.value || 0.8);
+  audio.play('high', { enable_sound_alerts: true, sound_volume: vol });
+}
+
+function updateAudioButtonState() {
+  const isEnabled = document.getElementById('setEnableSound')?.value === '1';
+  appSettings.enable_sound_alerts = isEnabled;
 }
 
 // =========================================================================
@@ -843,12 +1662,12 @@ async function setSentiment(id, sentiment) {
 document.addEventListener('click', () => { document.querySelectorAll('.sentiment-dropdown').forEach(d => d.classList.remove('show')); });
 
 function scoreBar(v) {
-  const color = v >= 85 ? 'var(--accent-green)' : v >= 50 ? 'var(--accent-blue)' : v >= 25 ? 'var(--accent-yellow)' : 'var(--accent-red)';
+  const color = v >= 85 ? 'var(--accent-green)' : v >= 50 ? 'var(--accent-blue)' : v >= 25 ? 'var(--accent-yellow)' : 'var(--accent-red-semantic)';
   return `<span style="display:inline-flex;align-items:center;gap:6px;"><span class="score-bar" style="width:${v}px;background:${color};"></span><span style="font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;font-size:12px">${v}</span></span>`;
 }
 
 // =========================================================================
-// NAVIGATION & FILTERING
+// NAVIGATION & TABS
 // =========================================================================
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -950,6 +1769,8 @@ function clearInputsWithoutReload() {
   currentNewsFilterType = 'All';
   document.querySelectorAll('.nav-filter-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('btnFilterAll')?.classList.add('active');
+  const badge = document.getElementById('filterCountBadge');
+  if (badge) badge.textContent = 'All News';
 }
 
 function clearAllFilters() {
@@ -965,19 +1786,20 @@ async function loadDashboard() {
   const [d, daily, sentiments, tags] = await Promise.all([
     api('/api/dashboard'), api('/api/dashboard/daily'), api('/api/dashboard/company_sentiments'), api('/api/dashboard/tag_summary')
   ]);
-  // Metrics Cards with CTAs
+  
+  // Metrics Cards with CTAs (No red font for standard stats; red ONLY for negative sentiment)
   document.getElementById('metricsCards').innerHTML = `
     <div class="card" onclick="jumpToNewsWithFilter('')">
       <div>
         <div class="card-label">Headlines Today</div>
-        <div class="card-value cyan">${d.total}</div>
+        <div class="card-value white">${d.total}</div>
       </div>
       <div class="card-cta">View Terminal ➔</div>
     </div>
     <div class="card" onclick="setNewsFilterType('live')">
       <div>
         <div class="card-label">🔴 Live Unread</div>
-        <div class="card-value red">${d.unread||0}</div>
+        <div class="card-value cyan">${d.unread||0}</div>
       </div>
       <div class="card-cta">Review Unread ➔</div>
     </div>
@@ -1005,7 +1827,7 @@ async function loadDashboard() {
     <div class="card" onclick="filterNewsBySentiment('Negative')">
       <div>
         <div class="card-label">Negative Sentiment</div>
-        <div class="card-value red">${d.negative}</div>
+        <div class="card-value negative-red">${d.negative}</div>
       </div>
       <div class="card-cta">Filter Negative ➔</div>
     </div>`;
@@ -1029,15 +1851,15 @@ async function loadDashboard() {
     const total = s.positive+s.negative+s.neutral || 1;
     const pW = (s.positive/total*100).toFixed(0), nW = (s.negative/total*100).toFixed(0), uW = (s.neutral/total*100).toFixed(0);
     const arrow = s.latest_sentiment.includes('Positive') ? '↑' : s.latest_sentiment.includes('Negative') ? '↓' : '→';
-    const arrowColor = s.latest_sentiment.includes('Positive') ? 'var(--accent-green)' : s.latest_sentiment.includes('Negative') ? 'var(--accent-red)' : 'var(--text-muted)';
+    const arrowColor = s.latest_sentiment.includes('Positive') ? 'var(--accent-green)' : s.latest_sentiment.includes('Negative') ? 'var(--accent-red-semantic)' : 'var(--text-muted)';
     return `<div class="sentiment-card" onclick="filterNewsByCompany('${esc(s.company)}')">
       <div class="sentiment-card-name">${esc(s.company)} <span style="color:${arrowColor};font-size:18px;margin-left:6px">${arrow}</span></div>
       <div class="sentiment-bar-row"><div class="bar-pos" style="flex:${pW}"></div><div class="bar-neu" style="flex:${uW}"></div><div class="bar-neg" style="flex:${nW}"></div></div>
       <div class="sentiment-card-stats">
         <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--accent-green)"></span>${s.positive} pos</span>
-        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--text-muted)"></span>${s.neutral} neu</span>
-        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--accent-red)"></span>${s.negative} neg</span>
-        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;color:var(--accent-blue)">${s.total} total</span>
+        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--mufg-grey)"></span>${s.neutral} neu</span>
+        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--accent-red-semantic)"></span>${s.negative} neg</span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;color:var(--text-accent);font-weight:700">${s.total} total</span>
       </div>
     </div>`;
   }).join('') : '<div class="empty-state">No company sentiment data yet</div>';
@@ -1049,7 +1871,7 @@ async function loadDashboard() {
   // Trending
   document.getElementById('trendingCompanies').innerHTML = d.trending_companies.length ? d.trending_companies.map(c => `<div class="trend-item" onclick="filterNewsByCompany('${esc(c.company)}')"><span>🏢 <strong>${esc(c.company)}</strong></span><span class="trend-count">${c.count} ➔</span></div>`).join('') : '<div class="empty-state">No data yet</div>';
   document.getElementById('trendingIndustries').innerHTML = d.trending_industries.length ? d.trending_industries.map(i => `<div class="trend-item" onclick="filterNewsByIndustry('${esc(i.industry)}')"><span>🏭 <strong>${esc(i.industry)}</strong></span><span class="trend-count">${i.count} ➔</span></div>`).join('') : '<div class="empty-state">No data yet</div>';
-  document.getElementById('footerLeft').textContent = `Last Refresh: ${d.last_refresh} | DB Connected`;
+  document.getElementById('footerLeft').textContent = `MUFG Bank | Last Refresh: ${d.last_refresh} | DB Connected`;
   loadTaxonomyKeywords();
 }
 
@@ -1067,7 +1889,7 @@ function loadTaxonomyCategory(cat) {
 }
 
 // =========================================================================
-// NEWS TERMINAL (Paginated)
+// NEWS TERMINAL (Paginated + Filters)
 // =========================================================================
 async function loadFilterDropdowns() {
   const [companies, industries, domains] = await Promise.all([
@@ -1090,6 +1912,21 @@ async function loadNews(page) {
   const dom = document.getElementById('domainFilter').value;
   const df = document.getElementById('dateFrom').value;
   const dt = document.getElementById('dateTo').value;
+
+  // Update filter count badge
+  let activeCount = 0;
+  if (q) activeCount++;
+  if (s !== 'All') activeCount++;
+  if (r !== 'All') activeCount++;
+  if (ind !== 'All') activeCount++;
+  if (comp !== 'All') activeCount++;
+  if (dom !== 'All') activeCount++;
+  if (currentNewsFilterType !== 'All') activeCount++;
+  const badge = document.getElementById('filterCountBadge');
+  if (badge) {
+    badge.textContent = activeCount > 0 ? `${activeCount} Active Filter${activeCount>1?'s':''}` : 'All News';
+  }
+
   const params = new URLSearchParams({
     page: currentPage, page_size: 50, q, sentiment: s, recency: r,
     industry: ind, company: comp, domain: dom,
@@ -1116,15 +1953,15 @@ function setNewsFilterType(type) {
 }
 
 function creditRiskBadge(risk, signal, itemJson) {
-  let bg = 'rgba(100,116,139,0.15)', color = '#94a3b8', border = '#475569', icon = '⚪';
+  let bg = 'rgba(255,255,255,0.1)', color = '#D1D5DB', border = 'rgba(255,255,255,0.2)', icon = '⚪';
   if (risk === 'HIGH') {
-    bg = 'rgba(239,68,68,0.15)'; color = '#f87171'; border = '#ef4444'; icon = '🔴';
+    bg = 'rgba(239,68,68,0.2)'; color = '#F87171'; border = '#EF4444'; icon = '🔴';
   } else if (risk === 'MEDIUM') {
-    bg = 'rgba(245,158,11,0.15)'; color = '#fbbf24'; border = '#f59e0b'; icon = '🟠';
+    bg = 'rgba(245,158,11,0.2)'; color = '#FBBF24'; border = '#F59E0B'; icon = '🟠';
   } else if (risk === 'LOW') {
-    bg = 'rgba(59,130,246,0.15)'; color = '#60a5fa'; border = '#3b82f6'; icon = '🟡';
+    bg = 'rgba(59,130,246,0.2)'; color = '#60A5FA'; border = '#3B82F6'; icon = '🟡';
   } else if (risk === 'FAVORABLE') {
-    bg = 'rgba(16,185,129,0.15)'; color = '#34d399'; border = '#10b981'; icon = '🟢';
+    bg = 'rgba(16,185,129,0.2)'; color = '#34D399'; border = '#10B981'; icon = '🟢';
   }
   return `<span class="credit-badge" onclick="openCreditModal('${itemJson}')" style="background:${bg};color:${color};border:1px solid ${border};padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.3px;white-space:nowrap;cursor:pointer;" title="Click for Multi-Dimensional Credit Risk Analysis">${icon} ${esc(risk||'NEUTRAL')}</span>`;
 }
@@ -1144,7 +1981,7 @@ function renderNews() {
     const itemJson = esc(JSON.stringify(r).replace(/'/g, "&#39;"));
     return `<tr class="${rowClass}" onmouseenter="onHover(${r.id})" onmouseleave="onLeave(${r.id})">
       <td><span class="star-btn ${isStarred?'starred':''}" onclick="toggleStar(${r.id})">${isStarred?'⭐':'✰'}</span></td>
-      <td style="white-space:nowrap;font-size:11px;font-weight:600;color:var(--accent-blue);font-family:'JetBrains Mono',monospace">${esc(r.published_time||'')}${isReviewed?'<br><span class="reviewed-tag">reviewed</span>':''}</td>
+      <td style="white-space:nowrap;font-size:11px;font-weight:700;color:var(--text-accent);font-family:'JetBrains Mono',monospace">${esc(r.published_time||'')}${isReviewed?'<br><span class="reviewed-tag">reviewed</span>':''}</td>
       <td><a class="headline-link" href="#" onclick="openArticle(${r.id},'${esc(r.url)}');return false;">${esc(r.headline)}</a></td>
       <td style="font-weight:600"><a href="#" onclick="filterNewsByCompany('${esc(r.company)}');return false;" style="color:var(--text-primary);text-decoration:none;">${esc(r.company)}</a></td>
       <td style="font-size:12px;color:var(--text-secondary)">${esc(r.industry)}</td>
@@ -1177,72 +2014,409 @@ function onLeave(id) { if(hoverTimers[id]){clearInterval(hoverTimers[id]);delete
 async function openArticle(id,url) { await api(`/api/headlines/${id}/review`,'POST'); window.open(url,'_blank'); loadNews(); }
 async function toggleStar(id) { await api(`/api/headlines/${id}/star`,'POST'); loadNews(); }
 async function markAllReviewed() { await api('/api/headlines/review_all','POST'); loadNews(); loadDashboard(); }
-async function confirmResetAllNews() { if(confirm("Clear ALL headlines? This cannot be undone.")){ await api('/api/headlines/clear','POST'); loadDashboard(); loadNews(); } }
+async function confirmResetAllNews() {
+  if (confirm("⚠️ SENSITIVE ACTION:\nAre you sure you want to permanently clear ALL news headlines?\nThis action cannot be undone.")) {
+    await api('/api/headlines/clear','POST');
+    loadDashboard();
+    loadNews();
+    alert('All headlines have been cleared.');
+  }
+}
 
 // =========================================================================
-// PORTFOLIO
+// EARNINGS TRACKER TAB
+// =========================================================================
+async function loadEarningsTab() {
+  const compFilter = document.getElementById('earnCompanyFilter');
+  if (compFilter && compFilter.options.length <= 1) {
+    const comps = await api('/api/filters/companies');
+    compFilter.innerHTML = '<option value="All">All Companies</option>' + comps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  }
+
+  const selectedComp = compFilter ? compFilter.value : 'All';
+  const selectedStatus = document.getElementById('earnStatusFilter') ? document.getElementById('earnStatusFilter').value : 'All';
+
+  // Load Calendar List View Table
+  const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}`);
+  const calBody = document.getElementById('earningsCalendarTableBody');
+
+  if (!calendarEvents || calendarEvents.length === 0) {
+    calBody.innerHTML = '<tr><td colspan="6" class="empty-state">No earnings events found. Click "Trigger Earnings Sweep" to ingest.</td></tr>';
+  } else {
+    calBody.innerHTML = calendarEvents.map(ev => {
+      let stColor = '#D1D5DB', stBg = 'rgba(255,255,255,0.1)';
+      if (ev.status === 'CONFIRMED') { stColor = 'var(--accent-green)'; stBg = 'rgba(16,185,129,0.2)'; }
+      else if (ev.status === 'ESTIMATED') { stColor = 'var(--accent-blue)'; stBg = 'rgba(59,130,246,0.2)'; }
+      else if (ev.status === 'PENDING_REVIEW') { stColor = 'var(--accent-yellow)'; stBg = 'rgba(251,191,36,0.2)'; }
+
+      const targetUrl = ev.source_url || (ev.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(ev.source_headline)}` : null);
+      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--text-accent);">🔗 ${esc(ev.source_headline || 'Press Release Provenance')}</a>` : `<span style="color:var(--text-muted);">${esc(ev.source_headline || 'Announced Reporting Window')}</span>`;
+
+      return `
+        <tr>
+          <td><strong style="color:var(--text-primary);">${esc(ev.company_name)}</strong></td>
+          <td><span style="background:var(--bg-tertiary);color:var(--text-primary);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(ev.quarter)}</span></td>
+          <td style="font-weight:600;color:var(--text-primary);">${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</td>
+          <td><span style="background:${stBg};color:${stColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${esc(ev.status)}</span></td>
+          <td><span style="font-size:11.5px;font-weight:700;color:${ev.countdown && ev.countdown.includes('REPORTED') ? 'var(--accent-green)' : 'var(--accent-blue)'};">${esc(ev.countdown)}</span></td>
+          <td style="font-size:11.5px;max-width:360px;white-space:normal;">${provHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Load Financial Results List View Table
+  const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}`);
+  const resBody = document.getElementById('earningsResultsTableBody');
+
+  if (!results || results.length === 0) {
+    resBody.innerHTML = '<tr><td colspan="8" class="empty-state">No financial metrics recorded yet. Trigger an earnings sweep to extract numbers.</td></tr>';
+  } else {
+    resBody.innerHTML = results.map(r => {
+      const navChange = r.nav_change_pct !== null ? (r.nav_change_pct >= 0 ? `<span style="color:var(--accent-green);font-weight:700;">(▲ ${r.nav_change_pct}%)</span>` : `<span style="color:var(--accent-red-semantic);font-weight:700;">(▼ ${r.nav_change_pct}%) 🔴</span>`) : '';
+      const covBadge = r.nii_coverage_pct !== null ? (r.nii_coverage_pct >= 100 ? `<span style="color:var(--accent-green);font-weight:700;">${r.nii_coverage_pct}% Covered</span>` : `<span style="color:var(--accent-red-semantic);font-weight:700;">${r.nii_coverage_pct}% Uncovered ⚠️</span>`) : 'N/A';
+
+      const targetUrl = r.source_url || (r.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(r.source_headline)}` : null);
+      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--text-accent);">🔗 Source</a>` : '-';
+
+      return `
+        <tr>
+          <td><strong style="color:var(--text-primary);">${esc(r.company_name)}</strong></td>
+          <td><span style="background:var(--bg-tertiary);color:var(--text-primary);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(r.quarter)}</span></td>
+          <td style="font-weight:700;">${r.nav_per_share ? '$' + r.nav_per_share.toFixed(2) : 'N/A'} ${navChange}</td>
+          <td style="font-weight:600;">${r.nii_per_share ? '$' + r.nii_per_share.toFixed(2) : 'N/A'}</td>
+          <td style="font-weight:600;">${r.dividend_regular ? '$' + r.dividend_regular.toFixed(2) : 'N/A'}</td>
+          <td>${covBadge}</td>
+          <td style="color:${r.non_accrual_pct > 2.0 ? 'var(--accent-red-semantic)' : 'var(--text-secondary)'};">${r.non_accrual_pct !== null ? r.non_accrual_pct.toFixed(2) + '%' : 'N/A'}</td>
+          <td>${provHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+}
+
+async function triggerEarningsSweep() {
+  const btn = document.getElementById('btnEarnSweep');
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Sweeping Earnings...'; }
+  try {
+    const res = await api('/api/earnings/trigger_sweep', 'POST', {});
+    if (res && res.ok) {
+      alert(`Earnings Sweep Complete!\n\n• Sourced: ${res.result.total_sourced} items\n• Saved: ${res.result.total_events_saved} new events/metrics`);
+      await loadEarningsTab();
+    } else {
+      alert('Sweep completed.');
+    }
+  } catch(e) {
+    alert('Error running earnings sweep: ' + e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Trigger Earnings Sweep'; }
+  }
+}
+
+// =========================================================================
+// PORTFOLIO MANAGEMENT
 // =========================================================================
 async function loadPortfolio() {
   portfolioData = await api('/api/portfolio');
-  document.getElementById('portfolioBody').innerHTML = portfolioData.map(r => `<tr>
-    <td><strong>${esc(r.company)}</strong></td><td>${esc(r.ticker||'')}</td><td>${esc(r.industry||'')}</td><td>${esc(r.country||'')}</td>
-    <td style="font-size:11px">${(r.aliases||[]).map(a=>esc(a)).join(', ')}</td>
-    <td><span class="toggle-btn" onclick="togglePortfolio(${r.id},${r.enabled?0:1})">${r.enabled?'✅':'⬜'}</span></td>
-    <td><span class="edit-btn" onclick="openEditModal(${r.id})">✏️ Edit</span><span class="delete-btn" onclick="deletePortfolio(${r.id})">Delete</span></td>
+  const indList = await api('/api/industries');
+  
+  // Populate Add Portfolio Industry select
+  const pIndSel = document.getElementById('pIndustrySelect');
+  if (pIndSel) {
+    pIndSel.innerHTML = '<option value="">-- Select Industry --</option>' + indList.map(i => `<option value="${esc(i.id)}" ${i.status==='INACTIVE'?'disabled':''}>${esc(i.name)} (${esc(i.id)})</option>`).join('');
+  }
+
+  const pBody = document.getElementById('portfolioBody');
+  if (!portfolioData || !portfolioData.length) {
+    pBody.innerHTML = '<tr><td colspan="7" class="empty-state">No companies in portfolio. Add your first entity above!</td></tr>';
+    return;
+  }
+
+  pBody.innerHTML = portfolioData.map(r => `<tr>
+    <td><strong style="color:var(--text-primary);">${esc(r.company)}</strong></td>
+    <td><span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent-yellow);">${esc(r.ticker||'—')}</span></td>
+    <td>
+      <span class="tag-badge" style="font-size:10px;margin-right:6px;font-family:var(--font-mono);">${esc(r.industry_id||'GENERAL')}</span>
+      <strong>${esc(r.industry||'Unassigned')}</strong>
+    </td>
+    <td>${esc(r.country||'USA')}</td>
+    <td style="font-size:11px;color:var(--text-secondary);">${(r.aliases||[]).map(a=>esc(a)).join(', ')}</td>
+    <td><span class="toggle-btn" onclick="togglePortfolio(${r.id},${r.enabled?0:1})" title="Toggle active status">${r.enabled?'✅ Active':'⬜ Inactive'}</span></td>
+    <td>
+      <span class="edit-btn" onclick="openEditModal(${r.id})">✏️ Edit</span>
+      <span class="delete-btn" onclick="deletePortfolio(${r.id})" style="margin-left:8px;">Delete</span>
+    </td>
   </tr>`).join('');
 }
-function openEditModal(id) { const i=portfolioData.find(p=>p.id===id); if(!i)return; document.getElementById('editPId').value=i.id; document.getElementById('editPCompany').value=i.company; document.getElementById('editPTicker').value=i.ticker||''; document.getElementById('editPIndustry').value=i.industry||''; document.getElementById('editPCountry').value=i.country||'USA'; document.getElementById('editPAliases').value=(i.aliases||[]).join(', '); document.getElementById('editPortfolioModal').style.display='flex'; }
-function closeEditModal() { document.getElementById('editPortfolioModal').style.display='none'; }
-async function saveEditPortfolio() { const id=parseInt(document.getElementById('editPId').value); await api(`/api/portfolio/${id}/update`,'POST',{company:document.getElementById('editPCompany').value.trim(),ticker:document.getElementById('editPTicker').value.trim(),industry:document.getElementById('editPIndustry').value.trim(),country:document.getElementById('editPCountry').value.trim(),aliases:document.getElementById('editPAliases').value.split(',').map(s=>s.trim()).filter(Boolean)}); closeEditModal(); loadPortfolio(); }
-async function addPortfolio() { const c=document.getElementById('pCompany').value.trim(); if(!c)return; await api('/api/portfolio','POST',{company:c,ticker:document.getElementById('pTicker').value.trim(),industry:document.getElementById('pIndustry').value.trim(),country:document.getElementById('pCountry').value.trim(),aliases:document.getElementById('pAliases').value.split(',').map(s=>s.trim()).filter(Boolean)}); ['pCompany','pTicker','pIndustry','pAliases'].forEach(id=>document.getElementById(id).value=''); loadPortfolio(); }
-async function deletePortfolio(id) { await api(`/api/portfolio/${id}`,'DELETE'); loadPortfolio(); }
-async function togglePortfolio(id,v) { await api(`/api/portfolio/${id}/toggle`,'POST',{enabled:v}); loadPortfolio(); loadIndustries(); loadQueryInspector(); }
-async function bulkTogglePortfolio(enabled) { await api('/api/portfolio/bulk_toggle','POST',{enabled:enabled}); loadPortfolio(); loadIndustries(); loadQueryInspector(); }
-async function bulkToggleDomains(enabled) { await api('/api/domains/bulk_toggle','POST',{enabled:enabled}); loadDomains(); }
-async function bulkToggleVisibility(visible) { await api('/api/visibility/bulk_toggle','POST',{visible:visible}); loadVisibility(); }
+
+function openEditModal(id) {
+  const i = portfolioData.find(p => p.id === id);
+  if (!i) return;
+  document.getElementById('editPId').value = i.id;
+  document.getElementById('editPCompany').value = i.company;
+  document.getElementById('editPTicker').value = i.ticker || '';
+  document.getElementById('editPCountry').value = i.country || 'USA';
+  document.getElementById('editPAliases').value = (i.aliases || []).join(', ');
+
+  const indSel = document.getElementById('editPIndustrySelect');
+  if (indSel && industriesData) {
+    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}" ${ind.id === i.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  }
+  document.getElementById('editPortfolioModal').style.display = 'flex';
+}
+
+function closeEditModal() {
+  document.getElementById('editPortfolioModal').style.display = 'none';
+}
+
+async function saveEditPortfolio() {
+  const id = parseInt(document.getElementById('editPId').value);
+  const indSel = document.getElementById('editPIndustrySelect');
+  const indId = indSel ? indSel.value : '';
+  const indName = indSel && indSel.selectedIndex >= 0 ? indSel.options[indSel.selectedIndex].text.split(' (')[0] : '';
+
+  await api(`/api/portfolio/${id}/update`, 'POST', {
+    company: document.getElementById('editPCompany').value.trim(),
+    ticker: document.getElementById('editPTicker').value.trim(),
+    industry: indName,
+    industry_id: indId,
+    country: document.getElementById('editPCountry').value.trim(),
+    aliases: document.getElementById('editPAliases').value.split(',').map(s => s.trim()).filter(Boolean)
+  });
+  closeEditModal();
+  loadPortfolio();
+  loadIndustries();
+  loadQueryInspector();
+}
+
+async function addPortfolio() {
+  const c = document.getElementById('pCompany').value.trim();
+  if (!c) return;
+  const indSel = document.getElementById('pIndustrySelect');
+  const indId = indSel ? indSel.value : '';
+  const indName = indSel && indSel.selectedIndex >= 0 ? indSel.options[indSel.selectedIndex].text.split(' (')[0] : '';
+
+  await api('/api/portfolio', 'POST', {
+    company: c,
+    ticker: document.getElementById('pTicker').value.trim(),
+    industry: indName,
+    industry_id: indId,
+    country: document.getElementById('pCountry').value.trim(),
+    aliases: document.getElementById('pAliases').value.split(',').map(s => s.trim()).filter(Boolean)
+  });
+  ['pCompany', 'pTicker', 'pAliases'].forEach(id => document.getElementById(id).value = '');
+  loadPortfolio();
+  loadIndustries();
+  loadQueryInspector();
+}
+
+async function deletePortfolio(id) {
+  if (!confirm('Are you sure you want to delete this portfolio company?')) return;
+  await api(`/api/portfolio/${id}`, 'DELETE');
+  loadPortfolio();
+  loadIndustries();
+  loadQueryInspector();
+}
+
+async function togglePortfolio(id, v) {
+  await api(`/api/portfolio/${id}/toggle`, 'POST', { enabled: v });
+  loadPortfolio();
+  loadIndustries();
+  loadQueryInspector();
+}
+
+async function bulkTogglePortfolio(enabled) {
+  await api('/api/portfolio/bulk_toggle', 'POST', { enabled: enabled });
+  loadPortfolio();
+  loadIndustries();
+  loadQueryInspector();
+}
+
+async function bulkToggleDomains(enabled) {
+  await api('/api/domains/bulk_toggle', 'POST', { enabled: enabled });
+  loadDomains();
+}
+
+async function bulkToggleVisibility(visible) {
+  await api('/api/visibility/bulk_toggle', 'POST', { visible: visible });
+  loadVisibility();
+}
 
 // =========================================================================
-// QUERY CATEGORIES & INSPECTOR
+// QUERY CATEGORIES & SCOPED SWEEP MANAGER
 // =========================================================================
 async function loadQueryCategories() {
   queryCategoriesData = await api('/api/query_categories');
-  document.getElementById('queryCategoriesBody').innerHTML = queryCategoriesData.map(r => `<tr>
-    <td><strong>${esc(r.name)}</strong></td><td style="font-size:11px">${(r.keywords||[]).join(', ')}</td>
-    <td><span class="toggle-btn" onclick="toggleQC(${r.id},${r.enabled?0:1})">${r.enabled?'✅ Active':'⬜'}</span></td>
-    <td><span class="edit-btn" onclick="openEditCatModal(${r.id})">✏️ Edit</span><span class="delete-btn" onclick="deleteQC(${r.id})">Delete</span></td>
-  </tr>`).join('');
+  filterQueryCategoriesTable();
 }
-function openEditCatModal(id) { const c=queryCategoriesData.find(x=>x.id===id); if(!c)return; document.getElementById('editCatId').value=c.id; document.getElementById('editCatName').value=c.name; document.getElementById('editCatKeywords').value=(c.keywords||[]).join(', '); document.getElementById('editCategoryModal').style.display='flex'; }
-function closeEditCategoryModal() { document.getElementById('editCategoryModal').style.display='none'; }
-async function saveEditCategory() { const id=parseInt(document.getElementById('editCatId').value),name=document.getElementById('editCatName').value.trim(),kws=document.getElementById('editCatKeywords').value.split(',').map(s=>s.trim()).filter(Boolean); if(!name||!kws.length)return; await api(`/api/query_categories/${id}/update`,'POST',{name,keywords:kws}); closeEditCategoryModal(); loadQueryCategories(); loadQueryInspector(); }
-async function addQueryCategory() { const n=document.getElementById('catName').value.trim(),kws=document.getElementById('catKeywords').value.split(',').map(s=>s.trim()).filter(Boolean); if(!n||!kws.length)return; await api('/api/query_categories','POST',{name:n,keywords:kws}); document.getElementById('catName').value=''; document.getElementById('catKeywords').value=''; loadQueryCategories(); loadQueryInspector(); }
-async function deleteQC(id) { await api(`/api/query_categories/${id}`,'DELETE'); loadQueryCategories(); loadQueryInspector(); }
-async function toggleQC(id,v) { await api(`/api/query_categories/${id}/toggle`,'POST',{enabled:v}); loadQueryCategories(); loadQueryInspector(); }
 
+function filterQueryCategoriesTable() {
+  const filter = document.getElementById('qcScopeFilter')?.value || 'ALL';
+  const tbody = document.getElementById('queryCategoriesBody');
+  if (!tbody || !queryCategoriesData) return;
+
+  const filtered = queryCategoriesData.filter(r => {
+    if (filter === 'ALL') return true;
+    return r.scope_type === filter;
+  });
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No query categories matching the selected scope filter.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(r => {
+    let scopeBadge = '<span style="background:rgba(59,130,246,0.15);color:var(--accent-blue);border:1px solid rgba(59,130,246,0.3);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;">🌐 Universal</span>';
+    if (r.scope_type === 'INDUSTRY') {
+      scopeBadge = `<span style="background:rgba(245,158,11,0.15);color:#F59E0B;border:1px solid rgba(245,158,11,0.3);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;">🏭 ${esc(r.industry_name || r.industry_id)}</span>`;
+    } else if (r.scope_type === 'COMPANY') {
+      scopeBadge = `<span style="background:rgba(168,85,247,0.15);color:var(--accent-purple);border:1px solid rgba(168,85,247,0.3);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;">🏢 ${esc(r.company_target_name || 'Company Override')}</span>`;
+    }
+
+    const prioColor = r.priority >= 90 ? 'var(--accent-red-semantic)' : r.priority >= 75 ? 'var(--accent-yellow)' : 'var(--text-secondary)';
+
+    return `<tr>
+      <td><strong style="color:var(--text-primary);">${esc(r.name)}</strong></td>
+      <td>${scopeBadge}</td>
+      <td><span style="background:var(--bg-tertiary);color:var(--text-primary);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:600;">${esc(r.target_dimension||'Earnings / Cash Flow')}</span></td>
+      <td><span style="font-weight:800;color:${prioColor};font-size:11.5px;">${r.priority||70}</span></td>
+      <td style="font-size:11px;color:var(--text-secondary);max-width:280px;white-space:normal;">${(r.keywords||[]).map(k=>`<code style="background:var(--bg-secondary);padding:1px 5px;border-radius:3px;margin:1px;display:inline-block;">${esc(k)}</code>`).join(' ')}</td>
+      <td><span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);">v${r.version||1}</span></td>
+      <td><span class="toggle-btn" onclick="toggleQC(${r.id},${r.enabled?0:1})">${r.enabled?'✅ Active':'⬜'}</span></td>
+      <td>
+        <span class="edit-btn" onclick="openEditCatModal(${r.id})">✏️ Edit</span>
+        <span class="delete-btn" onclick="deleteQC(${r.id})" style="margin-left:8px;">Delete</span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function onCatModalScopeChange() {
+  const scope = document.getElementById('catModalScopeType')?.value || 'UNIVERSAL';
+  const indGrp = document.getElementById('catModalIndustryGroup');
+  const compGrp = document.getElementById('catModalCompanyGroup');
+  if (indGrp) indGrp.style.display = (scope === 'INDUSTRY') ? 'block' : 'none';
+  if (compGrp) compGrp.style.display = (scope === 'COMPANY') ? 'block' : 'none';
+}
+
+function openAddCatModal() {
+  document.getElementById('catModalTitle').textContent = '📁 Add New Query Category Sweep';
+  document.getElementById('catModalId').value = '';
+  document.getElementById('catModalName').value = '';
+  document.getElementById('catModalScopeType').value = 'UNIVERSAL';
+  document.getElementById('catModalPriority').value = '70';
+  document.getElementById('catModalDimension').value = 'Earnings / Cash Flow';
+  document.getElementById('catModalKeywords').value = '';
+
+  // Populate industries & companies dropdowns
+  const indSel = document.getElementById('catModalIndustrySelect');
+  if (indSel && industriesData) {
+    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}">${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  }
+  const compSel = document.getElementById('catModalCompanySelect');
+  if (compSel && portfolioData) {
+    compSel.innerHTML = portfolioData.map(p => `<option value="${p.id}">${esc(p.company)} (${esc(p.ticker||'—')})</option>`).join('');
+  }
+
+  onCatModalScopeChange();
+  document.getElementById('categoryModal').style.display = 'flex';
+}
+
+function openEditCatModal(id) {
+  const c = queryCategoriesData.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('catModalTitle').textContent = `✏️ Edit Query Category (v${c.version||1})`;
+  document.getElementById('catModalId').value = c.id;
+  document.getElementById('catModalName').value = c.name;
+  document.getElementById('catModalScopeType').value = c.scope_type || 'UNIVERSAL';
+  document.getElementById('catModalPriority').value = c.priority || 70;
+  document.getElementById('catModalDimension').value = c.target_dimension || 'Earnings / Cash Flow';
+  document.getElementById('catModalKeywords').value = (c.keywords || []).join(', ');
+
+  const indSel = document.getElementById('catModalIndustrySelect');
+  if (indSel && industriesData) {
+    indSel.innerHTML = industriesData.map(ind => `<option value="${esc(ind.id)}" ${ind.id === c.industry_id ? 'selected' : ''}>${esc(ind.name)} (${esc(ind.id)})</option>`).join('');
+  }
+  const compSel = document.getElementById('catModalCompanySelect');
+  if (compSel && portfolioData) {
+    compSel.innerHTML = portfolioData.map(p => `<option value="${p.id}" ${p.id === c.company_id ? 'selected' : ''}>${esc(p.company)} (${esc(p.ticker||'—')})</option>`).join('');
+  }
+
+  onCatModalScopeChange();
+  document.getElementById('categoryModal').style.display = 'flex';
+}
+
+function closeCategoryModal() {
+  document.getElementById('categoryModal').style.display = 'none';
+}
+
+async function saveCategoryModal() {
+  const id = document.getElementById('catModalId').value;
+  const name = document.getElementById('catModalName').value.trim();
+  const scope_type = document.getElementById('catModalScopeType').value;
+  const industry_id = (scope_type === 'INDUSTRY') ? document.getElementById('catModalIndustrySelect').value : null;
+  const company_id = (scope_type === 'COMPANY') ? parseInt(document.getElementById('catModalCompanySelect').value) : null;
+  const priority = parseInt(document.getElementById('catModalPriority').value);
+  const target_dimension = document.getElementById('catModalDimension').value;
+  const keywords = document.getElementById('catModalKeywords').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (!name || !keywords.length) {
+    alert('Please specify Category Name and at least one Keyword.');
+    return;
+  }
+
+  if (id) {
+    await api(`/api/query_categories/${parseInt(id)}/update`, 'POST', {
+      name, scope_type, industry_id, company_id, priority, target_dimension, keywords
+    });
+  } else {
+    await api('/api/query_categories', 'POST', {
+      name, scope_type, industry_id, company_id, priority, target_dimension, keywords
+    });
+  }
+
+  closeCategoryModal();
+  loadQueryCategories();
+  loadQueryInspector();
+}
+
+async function deleteQC(id) {
+  if (!confirm('Are you sure you want to delete this query category?')) return;
+  await api(`/api/query_categories/${id}`, 'DELETE');
+  loadQueryCategories();
+  loadQueryInspector();
+}
+
+async function toggleQC(id, v) {
+  await api(`/api/query_categories/${id}/toggle`, 'POST', { enabled: v });
+  loadQueryCategories();
+  loadQueryInspector();
+}
+
+// =========================================================================
+// QUERY INSPECTOR (Deduplicated, Scoped Live Preview)
+// =========================================================================
 async function loadQueryInspector() {
   const rows = await api('/api/queries');
   const c = document.getElementById('queryInspectorContainer');
-  if(!rows.length){c.innerHTML='<div class="empty-state">No portfolio companies configured.</div>';return;}
+  if (!rows.length) { c.innerHTML = '<div class="empty-state">No portfolio companies configured.</div>'; return; }
 
   const PROVIDER_META = {
-    google_news:    {icon:'🔵', label:'Google News RSS',    color:'var(--accent-blue)',    key:'google'},
-    google_finance: {icon:'🟢', label:'Google Finance RSS', color:'var(--accent-green)',   key:'google_finance'},
-    bing:           {icon:'🟠', label:'Bing News RSS',      color:'#f5a623',               key:'bing'},
-    ddg:            {icon:'🟣', label:'DuckDuckGo HTML',    color:'var(--accent-purple)',  key:'ddg'},
+    google_news:    { icon: '🔵', label: 'Google News RSS', color: 'var(--accent-blue)', key: 'google' },
+    google_finance: { icon: '🟢', label: 'Google Finance RSS', color: 'var(--accent-green)', key: 'google_finance' },
+    bing:           { icon: '🟠', label: 'Bing News RSS', color: '#f5a623', key: 'bing' },
+    ddg:            { icon: '🟣', label: 'DuckDuckGo HTML', color: 'var(--accent-purple)', key: 'ddg' },
   };
 
-  function copyToClipboard(txt) {
-    navigator.clipboard.writeText(txt).catch(()=>{});
-  }
-  function qCard(provKey, queryStr, testLabel, extraRows='') {
-    const meta = PROVIDER_META[provKey] || {icon:'⚪',label:provKey,color:'var(--text-secondary)',key:provKey};
+  function qCard(provKey, queryStr, testLabel, extraRows = '') {
+    const meta = PROVIDER_META[provKey] || { icon: '⚪', label: provKey, color: 'var(--text-secondary)', key: provKey };
     const safeQ = esc(queryStr);
     const encoded = queryStr.replace(/'/g, "\\'");
     return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${meta.color};border-radius:var(--radius-xs);padding:12px 14px;margin-bottom:8px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="font-size:11px;font-weight:700;color:${meta.color};">${meta.icon} ${meta.label}</span>
         <div style="display:flex;gap:6px;">
-          <button onclick="copyToClipboard('${encoded}')" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
+          <button onclick="navigator.clipboard.writeText('${encoded}')" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
           <button onclick="testProviderQuery('${meta.key}','${encoded}')" style="font-size:10px;padding:3px 8px;border:1px solid ${meta.color};border-radius:4px;background:transparent;color:${meta.color};cursor:pointer;">▶ Test</button>
         </div>
       </div>
@@ -1252,7 +2426,7 @@ async function loadQueryInspector() {
   }
 
   let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-    <span style="font-size:13px;color:var(--text-secondary);">📡 Live query preview for <strong>${rows.length}</strong> portfolio companies — click <strong>▶ Test</strong> on any query card to see live results</span>
+    <span style="font-size:13px;color:var(--text-secondary);">📡 Industry-Aware live query dispatch preview for <strong>${rows.length}</strong> portfolio entities — sweeps are deterministically tailored per entity scope</span>
   </div>`;
 
   rows.forEach((r, idx) => {
@@ -1261,45 +2435,54 @@ async function loadQueryInspector() {
     const gf = pq.google_finance || {};
     const bn = pq.bing || {};
     const dg = pq.ddg || {};
-    const aliases = (r.aliases||[]).map(a=>`<code style="background:var(--bg-tertiary,#1a2235);padding:1px 6px;border-radius:3px;font-size:10px;">${esc(a)}</code>`).join(' ');
+    const aliases = (r.aliases || []).map(a => `<code style="background:var(--bg-tertiary);padding:1px 6px;border-radius:3px;font-size:10px;">${esc(a)}</code>`).join(' ');
 
-    // Category sweep cards formatted matching Snapshot 1
-    const catCards = (r.category_queries||[]).map(cq=>{
-      const safeQ = esc(cq.query||'');
-      const encoded = (cq.query||'').replace(/'/g, "\\'");
-      return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-blue);border-radius:var(--radius-xs);padding:10px 14px;margin-bottom:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-size:11px;font-weight:700;color:var(--accent-blue);">📁 Categorized Sweep Query: ${esc(cq.category_name)}</span>
+    const catCards = (r.category_queries || []).map(cq => {
+      const safeQ = esc(cq.query || '');
+      const encoded = (cq.query || '').replace(/'/g, "\\'");
+      const catNames = (cq.category_names || [cq.category_name]).map(n => `<span style="background:var(--bg-tertiary);color:var(--text-primary);padding:1px 6px;border-radius:8px;font-size:10px;font-weight:700;">📁 ${esc(n)}</span>`).join(' ');
+      const dims = (cq.target_dimensions || [cq.target_dimension]).map(d => `<span style="background:rgba(59,130,246,0.1);color:var(--accent-blue);padding:1px 6px;border-radius:8px;font-size:9.5px;font-weight:600;">📊 ${esc(d)}</span>`).join(' ');
+      const scopeBadge = cq.scope_type === 'INDUSTRY' ? `<span style="background:rgba(245,158,11,0.15);color:#F59E0B;padding:1px 6px;border-radius:8px;font-size:9.5px;font-weight:700;">🏭 ${esc(cq.industry_id||'Industry')}</span>` : `<span style="background:rgba(59,130,246,0.1);color:var(--accent-blue);padding:1px 6px;border-radius:8px;font-size:9.5px;font-weight:700;">🌐 Universal</span>`;
+
+      return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--border-bright);border-radius:var(--radius-xs);padding:10px 14px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            ${scopeBadge}
+            ${catNames}
+            ${dims}
+            <span style="font-size:10px;font-weight:800;color:var(--text-muted);">Priority: ${cq.priority||70}</span>
+          </div>
           <div style="display:flex;gap:6px;">
-            <button onclick="copyToClipboard('${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
-            <button onclick="testProviderQuery('google','${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--accent-blue);border-radius:3px;background:transparent;color:var(--accent-blue);cursor:pointer;">▶ Test</button>
+            <button onclick="navigator.clipboard.writeText('${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
+            <button onclick="testProviderQuery('google','${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--border-bright);border-radius:3px;background:transparent;color:var(--text-accent);cursor:pointer;">▶ Test</button>
           </div>
         </div>
-        <div class="code-block" style="font-size:11px;color:var(--accent-blue);word-break:break-all;font-family:var(--font-mono);">${safeQ}</div>
+        <div class="code-block" style="font-size:11px;color:var(--text-primary);word-break:break-all;font-family:var(--font-mono);">${safeQ}</div>
       </div>`;
     }).join('');
 
     html += `<div class="category-group-card" style="margin-bottom:24px;">
       <div class="category-group-title">
-        <span>🏢 ${esc(r.company)} ${r.ticker?`<span style="font-size:11px;color:var(--accent-yellow);font-weight:500;">(${esc(r.ticker)})</span>`:''}
-          <span style="font-size:10px;color:var(--text-muted);font-weight:normal;margin-left:8px;">Aliases: ${aliases||'none'}</span>
+        <span>🏢 <strong style="color:var(--text-primary);">${esc(r.company)}</strong> ${r.ticker ? `<span style="font-size:11px;color:var(--accent-yellow);font-weight:700;">(${esc(r.ticker)})</span>` : ''}
+          <span class="tag-badge" style="font-size:10.5px;margin-left:8px;">🏭 ${esc(r.industry||'General')}</span>
+          <span style="font-size:10px;color:var(--text-muted);font-weight:normal;margin-left:8px;">Aliases: ${aliases || 'none'}</span>
         </span>
-        <span style="font-size:11px;font-weight:normal;color:var(--text-muted);">${(r.category_queries||[]).length} active categorized sweeps</span>
+        <span style="font-size:11px;font-weight:normal;color:var(--text-muted);">${(r.category_queries || []).length} applicable scoped sweeps</span>
       </div>
 
       <!-- Broad Queries per provider -->
       <div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">🔍 Broad Search Queries</div>
-        ${qCard('google_news', gn.broad||r.broad_query||'')}
-        ${r.ticker ? qCard('google_finance', gf.finance_rss_url||'', 'Google Finance RSS',
-          `<div style="margin-top:4px;font-size:10px;color:var(--text-muted);">News query: <code style="font-family:var(--font-mono);">${esc(gf.news_rss_query||'')}</code></div>`) : ''}
-        ${qCard('bing', bn.broad||'')}
-        ${qCard('ddg', dg.broad||'')}
+        <div style="font-size:11px;font-weight:700;color:var(--text-mufg-grey);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">🔍 Broad Search Queries</div>
+        ${qCard('google_news', gn.broad || r.broad_query || '')}
+        ${r.ticker ? qCard('google_finance', gf.finance_rss_url || '', 'Google Finance RSS',
+          `<div style="margin-top:4px;font-size:10px;color:var(--text-muted);">News query: <code style="font-family:var(--font-mono);">${esc(gf.news_rss_query || '')}</code></div>`) : ''}
+        ${qCard('bing', bn.broad || '')}
+        ${qCard('ddg', dg.broad || '')}
       </div>
 
-      <!-- Categorized Sweep Queries (Snapshot 1 style) -->
+      <!-- Categorized Sweep Queries -->
       <div style="margin-top:14px;">
-        <div style="font-size:11px;font-weight:700;color:var(--accent-green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📁 Categorized Sweep Queries (${(r.category_queries||[]).length})</div>
+        <div style="font-size:11px;font-weight:700;color:var(--text-primary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📁 Applicable Scoped Sweeps (${(r.category_queries || []).length})</div>
         ${catCards}
       </div>
     </div>`;
@@ -1309,58 +2492,120 @@ async function loadQueryInspector() {
   c.innerHTML = html;
 }
 
-async function testProviderQuery(provider, query) {
-  const rd = document.getElementById('queryTestResultsInspector') || document.getElementById('testQueryResults');
-  if(rd) rd.innerHTML = `<div style="font-size:12px;color:var(--accent-yellow);padding:10px 0;">⏳ Testing on ${provider}...</div>`;
-  // Also fill the main tester input
-  const inp = document.getElementById('testQueryInput');
-  const sel = document.getElementById('testQueryProvider');
-  if(inp) inp.value = query;
-  if(sel) sel.value = provider;
-  // Scroll to tester
-  document.getElementById('testQueryResults').scrollIntoView({behavior:'smooth'});
-  const res = await api('/api/queries/test_provider', 'POST', {provider, query});
-  const target = document.getElementById('testQueryResults');
-  renderTestResults(target, res.items||[], provider);
-}
-
-async function runTestQuery() {
-  const q = document.getElementById('testQueryInput').value.trim();
-  const provider = document.getElementById('testQueryProvider')?.value || 'google';
-  if(!q) return;
-  const rd = document.getElementById('testQueryResults');
-  rd.innerHTML = `<div style="font-size:12px;color:var(--accent-yellow);padding:8px 0;">⏳ Testing "${q}" on ${provider}...</div>`;
-  const res = await api('/api/queries/test_provider', 'POST', {provider, query: q});
-  renderTestResults(rd, res.items||[], provider);
-}
-
-function renderTestResults(container, items, provider) {
-  const PCOL = {google:'var(--accent-blue)',google_finance:'var(--accent-green)',bing:'#f5a623',ddg:'var(--accent-purple)'};
-  const col = PCOL[provider]||'var(--accent-green)';
-  if(!items.length) {
-    container.innerHTML = `<div style="font-size:12px;color:var(--accent-red);padding:8px 0;">⚠️ 0 results — query returned nothing from ${provider}</div>`;
-    return;
-  }
-  container.innerHTML = `<div style="font-size:12px;color:${col};margin-bottom:8px;">✅ ${items.length} results from <strong>${provider}</strong></div>
-    <div class="table-wrap"><table><thead><tr><th>Title</th><th>Source</th><th>Date</th></tr></thead><tbody>
-    ${items.map(it=>`<tr><td><a class="headline-link" href="${esc(it.link)}" target="_blank">${esc(it.title)}</a></td><td style="font-size:11px;">${esc(it.source||provider)}</td><td style="font-size:11px;">${esc(it.pubDate||'')}</td></tr>`).join('')}
-    </tbody></table></div>`;
-}
-
-
 // =========================================================================
-// INDUSTRIES, KEYWORDS, DOMAINS, VISIBILITY
+// INDUSTRIES MANAGEMENT
 // =========================================================================
 async function loadIndustries() {
-  const rows = await api('/api/industries');
-  document.getElementById('industryBody').innerHTML = rows.length ? rows.map(r => `<tr>
-    <td><strong>${esc(r.name)}</strong></td>
-    <td><span class="tag-badge" style="font-size:12px;padding:3px 10px">${r.company_count} compan${r.company_count>1?'ies':'y'}</span></td>
-    <td>
-      <span class="edit-btn" onclick="filterNewsByIndustry('${esc(r.name)}')">📰 Filter News ➔</span>
-      <span class="edit-btn" onclick="showTab('portfolio')" style="color:var(--text-muted);margin-left:12px">🏢 View in Portfolio</span>
-    </td>
-  </tr>`).join('') : '<tr><td colspan="3" class="empty-state">No industries found in Portfolio tab. Add companies to portfolio with industries to see them here!</td></tr>';
+  industriesData = await api('/api/industries');
+  const tbody = document.getElementById('industryBody');
+  if (!tbody) return;
+
+  if (!industriesData || !industriesData.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No industries found in master catalog.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = industriesData.map(r => {
+    const isActive = (r.status === 'ACTIVE' || r.enabled === 1 || r.status === undefined);
+    const statusPill = isActive
+      ? `<span style="background:rgba(16,185,129,0.15);color:var(--accent-green);border:1px solid rgba(16,185,129,0.3);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;">ACTIVE</span>`
+      : `<span style="background:rgba(107,114,128,0.2);color:var(--text-muted);border:1px solid rgba(107,114,128,0.3);padding:2px 8px;border-radius:10px;font-size:10.5px;font-weight:700;">INACTIVE</span>`;
+
+    const catCount = r.category_count !== undefined ? r.category_count : 0;
+    const compCount = r.company_count !== undefined ? r.company_count : 0;
+
+    return `<tr>
+      <td><strong style="color:var(--text-primary);font-size:13px;">${esc(r.name)}</strong></td>
+      <td><span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent-blue);">${esc(r.id)}</span></td>
+      <td><span style="background:var(--bg-tertiary);color:var(--text-primary);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${esc(r.risk_profile||'STANDARD_CORP')}</span></td>
+      <td><span class="tag-badge" style="font-size:11px;padding:3px 10px">${compCount} compan${compCount === 1 ? 'y' : 'ies'}</span></td>
+      <td><span style="font-size:11px;font-weight:700;color:var(--text-secondary);">${catCount} sweep${catCount === 1 ? '' : 's'}</span></td>
+      <td><span class="toggle-btn" onclick="toggleIndustryStatus('${esc(r.id)}')" title="Toggle active status in dropdowns">${statusPill}</span></td>
+      <td>
+        <span class="edit-btn" onclick="openRenameIndustryModal('${esc(r.id)}', '${esc(r.name)}')">✏️ Rename</span>
+        <span class="delete-btn" onclick="deleteIndustry('${esc(r.id)}')" style="margin-left:8px;">🗑️ Delete</span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openAddIndustryModal() {
+  document.getElementById('addIndName').value = '';
+  document.getElementById('addIndId').value = '';
+  document.getElementById('addIndRiskProfile').value = 'STANDARD_CORP';
+  document.getElementById('addIndustryModal').style.display = 'flex';
+}
+
+function closeAddIndustryModal() {
+  document.getElementById('addIndustryModal').style.display = 'none';
+}
+
+function autoPopulateIndCode() {
+  const name = document.getElementById('addIndName').value.trim();
+  const code = name.toUpperCase().replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  document.getElementById('addIndId').value = code;
+}
+
+async function saveAddIndustry() {
+  const name = document.getElementById('addIndName').value.trim();
+  let id = document.getElementById('addIndId').value.trim().toUpperCase();
+  const risk_profile = document.getElementById('addIndRiskProfile').value;
+
+  if (!name) {
+    alert('Please enter an Industry Name.');
+    return;
+  }
+  if (!id) {
+    id = name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+  }
+
+  const res = await api('/api/industries', 'POST', { id, name, risk_profile });
+  if (res && !res.ok) {
+    alert(res.message || 'Error adding industry');
+    return;
+  }
+  closeAddIndustryModal();
+  loadIndustries();
+  loadPortfolio();
+}
+
+function openRenameIndustryModal(id, currentName) {
+  document.getElementById('renameIndId').value = id;
+  document.getElementById('renameIndCode').textContent = id;
+  document.getElementById('renameIndName').value = currentName;
+  document.getElementById('renameIndustryModal').style.display = 'flex';
+}
+
+function closeRenameIndustryModal() {
+  document.getElementById('renameIndustryModal').style.display = 'none';
+}
+
+async function saveRenameIndustry() {
+  const id = document.getElementById('renameIndId').value;
+  const newName = document.getElementById('renameIndName').value.trim();
+  if (!newName) return;
+
+  await api(`/api/industries/${encodeURIComponent(id)}/rename`, 'POST', { name: newName });
+  closeRenameIndustryModal();
+  loadIndustries();
+  loadPortfolio();
+}
+
+async function toggleIndustryStatus(id) {
+  await api(`/api/industries/${encodeURIComponent(id)}/status`, 'POST', {});
+  loadIndustries();
+  loadPortfolio();
+}
+
+async function deleteIndustry(id) {
+  if (!confirm(`Are you sure you want to delete industry '${id}'?`)) return;
+  const res = await api(`/api/industries/${encodeURIComponent(id)}`, 'DELETE');
+  if (res && !res.ok) {
+    alert(res.message || 'Cannot delete industry.');
+    return;
+  }
+  loadIndustries();
+  loadPortfolio();
 }
 
 async function loadKeywords() { const rows=await api('/api/keywords'); document.getElementById('keywordBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.word)}</td><td style="font-size:11px">${esc(r.category)}</td><td><span class="toggle-btn" onclick="toggleKW(${r.id},${r.enabled?0:1})">${r.enabled?'✅':'⬜'}</span></td><td><span class="delete-btn" onclick="deleteKW(${r.id})">Delete</span></td></tr>`).join(''); }
@@ -1392,6 +2637,9 @@ function toggleCustomSettingsDateRange() {
   if(row) row.style.display = (v === 'custom') ? 'flex' : 'none';
 }
 
+// =========================================================================
+// SETTINGS TAB MANAGEMENT
+// =========================================================================
 async function loadSettings() {
   appSettings = await api('/api/settings');
   document.getElementById('setRecencyWindow').value = appSettings.recency_window || '7d';
@@ -1415,8 +2663,8 @@ async function loadSettings() {
   document.getElementById('setQuietHours').value = appSettings.quiet_hours_enabled ? '1' : '0';
   document.getElementById('setQuietStart').value = appSettings.quiet_hours_start || '22:00';
   document.getElementById('setQuietEnd').value = appSettings.quiet_hours_end || '07:00';
-  document.getElementById('audioToggleBtn').textContent = appSettings.enable_sound_alerts ? '🔊 Sound: ON' : '🔇 Sound: OFF';
 }
+
 async function saveSettings() {
   appSettings = {
     recency_window: document.getElementById('setRecencyWindow').value,
@@ -1441,7 +2689,7 @@ async function saveSettings() {
     quiet_hours_end: document.getElementById('setQuietEnd').value,
   };
   await api('/api/settings', 'POST', appSettings);
-  alert('Settings saved!');
+  alert('MUFG Intelligence Terminal Settings saved successfully!');
 }
 
 // =========================================================================
@@ -1453,6 +2701,7 @@ async function triggerRefresh() {
   await api('/api/refresh', 'POST');
   pollStatus();
 }
+
 async function pollStatus() {
   const s = await api('/api/status');
   if (s.running) {
@@ -1482,7 +2731,6 @@ function openCreditModal(jsonStr) {
     document.getElementById('cmVader').textContent = ((item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A') + fvStr + fsStr;
     document.getElementById('cmConfidence').textContent = matrix.confidence ? (matrix.confidence * 100).toFixed(0) + '%' : '50%';
 
-    // Dimensions
     const dims = [
       { name: 'Asset Quality', data: matrix.asset_quality || {} },
       { name: 'Capital & Liquidity', data: matrix.capital_liquidity || {} },
@@ -1493,10 +2741,10 @@ function openCreditModal(jsonStr) {
 
     document.getElementById('cmDims').innerHTML = dims.map(d => {
       const st = d.data.status || 'NOT_MENTIONED';
-      let tagBg = 'rgba(100,116,139,0.1)', tagColor = '#94a3b8';
-      if (['DETERIORATING','STRAINED','ADVERSE','DOWNGRADE_RISK'].includes(st)) { tagBg = 'rgba(239,68,68,0.15)'; tagColor = '#f87171'; }
-      else if (['IMPROVING','STRONG','POSITIVE','UPGRADE'].includes(st)) { tagBg = 'rgba(16,185,129,0.15)'; tagColor = '#34d399'; }
-      else if (['STABLE','ADEQUATE'].includes(st)) { tagBg = 'rgba(59,130,246,0.15)'; tagColor = '#60a5fa'; }
+      let tagBg = 'rgba(255,255,255,0.1)', tagColor = '#D1D5DB';
+      if (['DETERIORATING','STRAINED','ADVERSE','DOWNGRADE_RISK'].includes(st)) { tagBg = 'rgba(239,68,68,0.25)'; tagColor = '#F87171'; }
+      else if (['IMPROVING','STRONG','POSITIVE','UPGRADE'].includes(st)) { tagBg = 'rgba(16,185,129,0.2)'; tagColor = '#34D399'; }
+      else if (['STABLE','ADEQUATE'].includes(st)) { tagBg = 'rgba(59,130,246,0.2)'; tagColor = '#60A5FA'; }
       
       return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
         <span style="font-size:12px;font-weight:600;color:var(--text-primary);">${d.name}</span>
@@ -1504,12 +2752,11 @@ function openCreditModal(jsonStr) {
       </div>`;
     }).join('');
 
-    // Signals Reasoning
     const signals = matrix.signals || [];
     if (signals.length) {
       document.getElementById('cmReasons').innerHTML = signals.map(s => `
-        <div style="background:var(--bg-tertiary);border-left:3px solid var(--accent-blue);padding:8px 12px;margin-bottom:6px;border-radius:0 4px 4px 0;">
-          <div style="font-size:11px;font-weight:700;color:var(--accent-blue);">${esc(s.term || '')} (${esc(s.dimension || '')})</div>
+        <div style="background:var(--bg-tertiary);border-left:3px solid var(--border-bright);padding:8px 12px;margin-bottom:6px;border-radius:0 4px 4px 0;">
+          <div style="font-size:11px;font-weight:700;color:var(--text-primary);">${esc(s.term || '')} (${esc(s.dimension || '')})</div>
           <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">"${esc(s.matched_phrase || '')}"</div>
           <div style="font-size:11px;color:var(--text-primary);margin-top:4px;font-style:italic;">💡 Reason: ${esc(s.reason || '')}</div>
         </div>
@@ -1523,132 +2770,14 @@ function openCreditModal(jsonStr) {
 }
 function closeCreditModal() { document.getElementById('creditRiskModal').style.display = 'none'; }
 
-async function loadEarningsTab() {
-  const compFilter = document.getElementById('earnCompanyFilter');
-  if (compFilter && compFilter.options.length <= 1) {
-    const comps = await api('/api/filters/companies');
-    compFilter.innerHTML = '<option value="All">All Companies</option>' + comps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  }
-
-  const selectedComp = compFilter ? compFilter.value : 'All';
-  const selectedStatus = document.getElementById('earnStatusFilter') ? document.getElementById('earnStatusFilter').value : 'All';
-
-  // Load Calendar List View Table
-  const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}`);
-  const calBody = document.getElementById('earningsCalendarTableBody');
-
-  if (!calendarEvents || calendarEvents.length === 0) {
-    calBody.innerHTML = '<tr><td colspan="6" class="empty-state">No earnings events found. Click "Trigger Earnings Sweep" to ingest.</td></tr>';
-  } else {
-    calBody.innerHTML = calendarEvents.map(ev => {
-      let stColor = '#94a3b8', stBg = 'rgba(148,163,184,0.1)';
-      if (ev.status === 'CONFIRMED') { stColor = '#34d399'; stBg = 'rgba(16,185,129,0.15)'; }
-      else if (ev.status === 'ESTIMATED') { stColor = '#60a5fa'; stBg = 'rgba(59,130,246,0.15)'; }
-      else if (ev.status === 'PENDING_REVIEW') { stColor = '#fbbf24'; stBg = 'rgba(251,191,36,0.15)'; }
-
-      const targetUrl = ev.source_url || (ev.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(ev.source_headline)}` : null);
-      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--accent-blue);">🔗 ${esc(ev.source_headline || 'Press Release Provenance')}</a>` : `<span style="color:var(--text-muted);">${esc(ev.source_headline || 'Announced Reporting Window')}</span>`;
-
-      return `
-        <tr>
-          <td><strong style="color:var(--text-primary);">${esc(ev.company_name)}</strong></td>
-          <td><span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(ev.quarter)}</span></td>
-          <td style="font-weight:600;color:var(--accent-blue);">${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</td>
-          <td><span style="background:${stBg};color:${stColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${esc(ev.status)}</span></td>
-          <td><span style="font-size:11.5px;font-weight:700;color:${ev.countdown && ev.countdown.includes('REPORTED') ? 'var(--accent-green)' : '#60a5fa'};">${esc(ev.countdown)}</span></td>
-          <td style="font-size:11.5px;max-width:360px;white-space:normal;">${provHtml}</td>
-        </tr>
-      `;
-    }).join('');
-  }
-
-  // Load Financial Results List View Table
-  const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}`);
-  const resBody = document.getElementById('earningsResultsTableBody');
-
-  if (!results || results.length === 0) {
-    resBody.innerHTML = '<tr><td colspan="8" class="empty-state">No financial metrics recorded yet. Trigger an earnings sweep to extract numbers.</td></tr>';
-  } else {
-    resBody.innerHTML = results.map(r => {
-      const navChange = r.nav_change_pct !== null ? (r.nav_change_pct >= 0 ? `<span style="color:#34d399;font-weight:700;">(▲ ${r.nav_change_pct}%)</span>` : `<span style="color:#f87171;font-weight:700;">(▼ ${r.nav_change_pct}%) 🔴</span>`) : '';
-      const covBadge = r.nii_coverage_pct !== null ? (r.nii_coverage_pct >= 100 ? `<span style="color:#34d399;font-weight:700;">${r.nii_coverage_pct}% Covered</span>` : `<span style="color:#f87171;font-weight:700;">${r.nii_coverage_pct}% Uncovered ⚠️</span>`) : 'N/A';
-
-      const targetUrl = r.source_url || (r.source_headline ? `https://www.google.com/search?q=${encodeURIComponent(r.source_headline)}` : null);
-      const provHtml = targetUrl ? `<a href="${esc(targetUrl)}" target="_blank" class="headline-link" style="color:var(--accent-blue);">🔗 Source</a>` : '-';
-
-      return `
-        <tr>
-          <td><strong style="color:var(--text-primary);">${esc(r.company_name)}</strong></td>
-          <td><span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(r.quarter)}</span></td>
-          <td style="font-weight:700;">${r.nav_per_share ? '$' + r.nav_per_share.toFixed(2) : 'N/A'} ${navChange}</td>
-          <td style="font-weight:600;">${r.nii_per_share ? '$' + r.nii_per_share.toFixed(2) : 'N/A'}</td>
-          <td style="font-weight:600;">${r.dividend_regular ? '$' + r.dividend_regular.toFixed(2) : 'N/A'}</td>
-          <td>${covBadge}</td>
-          <td style="color:${r.non_accrual_pct > 2.0 ? '#f87171' : 'var(--text-secondary)'};">${r.non_accrual_pct !== null ? r.non_accrual_pct.toFixed(2) + '%' : 'N/A'}</td>
-          <td>${provHtml}</td>
-        </tr>
-      `;
-    }).join('');
-  }
-}
-
-async function triggerEarningsSweep() {
-  const btn = document.getElementById('btnEarnSweep');
-  if (btn) { btn.disabled = true; btn.textContent = '🔄 Sweeping Earnings...'; }
-  try {
-    const res = await api('/api/earnings/trigger_sweep', 'POST', {});
-    if (res && res.ok) {
-      alert(`Earnings Sweep Complete!\n\n• Sourced: ${res.result.total_sourced} items\n• Saved: ${res.result.total_events_saved} new events/metrics`);
-      await loadEarningsTab();
-    } else {
-      alert('Sweep completed.');
-    }
-  } catch(e) {
-    alert('Error running earnings sweep: ' + e);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🔄 Trigger Earnings Sweep'; }
-  }
-}
-</script>
-
-<!-- CREDIT RISK MATRIX MODAL -->
-<div id="creditRiskModal" class="modal-overlay" style="display:none;">
-  <div class="modal-card" style="max-width:620px;width:95%;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-      <div>
-        <h3 id="cmHeadline" style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Headline</h3>
-        <div id="cmCompany" style="font-size:11px;color:var(--accent-blue);font-weight:600;">Company</div>
-      </div>
-      <button onclick="closeCreditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
-    </div>
-    
-    <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <span id="cmRiskPill" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid #ef4444;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:800;">HIGH RISK</span>
-      <span id="cmSignal" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;">Signal</span>
-      <span style="margin-left:auto;font-size:11px;color:var(--text-secondary);align-self:center;">Baseline VADER: <b id="cmVader">0.0</b> | Confidence: <b id="cmConfidence">90%</b></span>
-    </div>
-
-    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Multi-Dimensional Risk Breakdown</div>
-    <div id="cmDims"></div>
-
-    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:14px;margin-bottom:6px;">Detected Signal Explanations &amp; Context Reasons</div>
-    <div id="cmReasons"></div>
-
-    <div style="text-align:right;margin-top:16px;">
-      <button class="btn btn-secondary" onclick="closeCreditModal()">Close</button>
-    </div>
-  </div>
-</div>
-</body>
-</html>
-<script>
+// Auto-poll intervals
 setInterval(() => {
   const a = document.querySelector('.tab-content.active');
   if (a?.id === 'tab-news') loadNews();
   if (a?.id === 'tab-dashboard') loadDashboard();
 }, 30000);
 
-// Init
+// Initial load
 loadDashboard();
 </script>
 </body>

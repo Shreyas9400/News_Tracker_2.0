@@ -692,8 +692,14 @@ class FetcherEngine:
         domains = self.db.get_domains() if self.config.get("domain_filter_enabled") else []
         recency = self.config.get("recency_window", "7d")
         s_date = self.config.get("custom_start_date", "")
+        s_date = self.config.get("custom_start_date", "")
         e_date = self.config.get("custom_end_date", "")
-        categories = [c for c in self.db.get_query_categories() if c.get("enabled")]
+        all_categories = self.db.get_query_categories(enabled_only=True)
+
+        # Smart query generation: Universal + Company's Industry + Company Overrides with query-level deduplication
+        applicable_queries = QueryBuilder.get_applicable_queries_for_company(
+            comp, all_categories, domains=domains, recency=recency, start_date=s_date, end_date=e_date
+        )
 
         total_saved = 0
 
@@ -706,7 +712,7 @@ class FetcherEngine:
             total_saved += self._process_items(items, company_name, q_broad_ddg, "DuckDuckGo")
             time.sleep(self.duckduckgo.get_delay())
 
-        # Provider 2: Bing News (Always runs Broad Search + Category sweeps)
+        # Provider 2: Bing News (Always runs Broad Search + Scoped Category sweeps)
         if self.bing.enabled:
             # Broad Bing search
             q_broad_b = QueryBuilder.build_bing(company_name, aliases, [], ticker=ticker)
@@ -714,9 +720,9 @@ class FetcherEngine:
             total_saved += self._process_items(items, company_name, q_broad_b, "Bing News")
             time.sleep(self.bing.get_delay())
 
-            # Category Bing sweeps
-            for cat in categories:
-                q = QueryBuilder.build_bing(company_name, aliases, cat.get("keywords", []), domains, ticker=ticker)
+            # Scoped Category Bing sweeps
+            for cat_item in applicable_queries:
+                q = cat_item.get("bing_query") or QueryBuilder.build_bing(company_name, aliases, cat_item.get("keywords", []), domains, ticker=ticker)
                 items = self.bing.fetch(q, uas)
                 total_saved += self._process_items(items, company_name, q, "Bing News")
                 time.sleep(self.bing.get_delay())
@@ -729,7 +735,7 @@ class FetcherEngine:
             total_saved += self._process_items(items, company_name, q, "GDELT")
             time.sleep(self.gdelt.get_delay())
 
-        # Provider 4: Google News (Always runs Broad Search + Category sweeps)
+        # Provider 4: Google News (Always runs Broad Search + Scoped Category sweeps)
         if self.google.enabled:
             # Always run Broad Google search (gets 50-100 top material headlines for company)
             q_broad_g = QueryBuilder.build_broad(company_name, aliases, domains, recency, ticker=ticker, start_date=s_date, end_date=e_date)
@@ -737,9 +743,9 @@ class FetcherEngine:
             total_saved += self._process_items(items, company_name, q_broad_g, "Google News")
             time.sleep(self.google.get_delay())
 
-            # Category Google sweeps
-            for cat in categories:
-                q = QueryBuilder.build_google(company_name, aliases, cat.get("keywords", []), domains, recency, ticker=ticker, start_date=s_date, end_date=e_date)
+            # Scoped Category Google sweeps (Deduplicated query execution)
+            for cat_item in applicable_queries:
+                q = cat_item.get("query") or QueryBuilder.build_google(company_name, aliases, cat_item.get("keywords", []), domains, recency, ticker=ticker, start_date=s_date, end_date=e_date)
                 items = self.google.fetch(q, uas)
                 total_saved += self._process_items(items, company_name, q, "Google News")
                 time.sleep(self.google.get_delay())
