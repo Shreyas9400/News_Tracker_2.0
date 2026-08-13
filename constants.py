@@ -53,6 +53,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "theme": "Dark",
     "domain_filter_enabled": False,
     "finvader_enabled": False,
+    "fin_sentiment_enabled": False,
     "stagger_delay_seconds": 1.5,
     "recency_window": "7d",
     # Search engine settings

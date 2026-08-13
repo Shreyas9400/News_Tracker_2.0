@@ -15,7 +15,8 @@
   "db_path": "/Users/drsayalijadhav/.gemini/antigravity-ide/scratch/news_intelligence_app/news_intelligence.db",
   "theme": "Dark",
   "domain_filter_enabled": false,
-  "finvader_enabled": false,
+  "finvader_enabled": true,
+  "fin_sentiment_enabled": false,
   "stagger_delay_seconds": 4,
   "google_delay_range": [
     3,

@@ -45,6 +45,16 @@ try:
 except ImportError:
     logger.info("FinVADER library not installed.")
 
+HAS_FINSENTIMENT = False
+_fin_analyzer = None
+try:
+    from fin_sentiment import SentimentAnalyzer as FinSentimentAnalyzer
+    _fin_analyzer = FinSentimentAnalyzer()
+    HAS_FINSENTIMENT = True
+    logger.info("fin-sentiment PyTorch model engine loaded.")
+except Exception as e:
+    logger.info("fin-sentiment package not loaded: %s", e)
+
 
 # ---------------------------------------------------------------------------
 # 1. Financial & Credit Risk Lexicon
@@ -341,6 +351,25 @@ class CreditRiskIntelligenceEngine:
             except Exception as e:
                 logger.debug("FinVADER library calculation error: %s", e)
 
+        # Step 1c: Optional fin-sentiment PyTorch package calculation
+        fin_sentiment_score = None
+        fin_sentiment_label = None
+        fin_sentiment_enabled = (config or {}).get("fin_sentiment_enabled", False)
+        if HAS_FINSENTIMENT and _fin_analyzer and (fin_sentiment_enabled or config is None):
+            try:
+                res = _fin_analyzer.analyze(headline)
+                if res == 1:
+                    fin_sentiment_label = "Negative"
+                    fin_sentiment_score = -0.75
+                elif res == 2:
+                    fin_sentiment_label = "Positive"
+                    fin_sentiment_score = 0.75
+                else:
+                    fin_sentiment_label = "Neutral"
+                    fin_sentiment_score = 0.0
+            except Exception as e:
+                logger.debug("fin-sentiment calculation error: %s", e)
+
         # Step 2: Parse contextual financial signals
         signals = ContextualSentimentParser.parse_signals(headline)
 
@@ -421,6 +450,8 @@ class CreditRiskIntelligenceEngine:
             "baseline_vader_score": baseline_vader_score,
             "finvader_score": finvader_score,
             "finvader_label": finvader_label,
+            "fin_sentiment_score": fin_sentiment_score,
+            "fin_sentiment_label": fin_sentiment_label,
             "asset_quality": dimensions["asset_quality"],
             "capital_liquidity": dimensions["capital_liquidity"],
             "earnings_nav": dimensions["earnings_nav"],
