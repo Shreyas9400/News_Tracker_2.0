@@ -37,6 +37,14 @@ try:
 except ImportError:
     pass
 
+HAS_FINVADER = False
+try:
+    from finvader import finvader
+    HAS_FINVADER = True
+    logger.info("FinVADER sentiment engine loaded.")
+except ImportError:
+    logger.info("FinVADER library not installed.")
+
 
 # ---------------------------------------------------------------------------
 # 1. Financial & Credit Risk Lexicon
@@ -306,7 +314,7 @@ class CreditRiskIntelligenceEngine:
     """Master engine producing the full multi-dimensional credit risk matrix."""
 
     @staticmethod
-    def analyze(headline: str) -> Dict[str, Any]:
+    def analyze(headline: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # Step 1: Compute baseline VADER score
         baseline_vader_score = 0.0
         if HAS_VADER:
@@ -315,6 +323,23 @@ class CreditRiskIntelligenceEngine:
                 baseline_vader_score = round(vs["compound"], 3)
             except Exception:
                 pass
+
+        # Step 1b: Optional FinVADER Python library calculation
+        finvader_score = None
+        finvader_label = None
+        finvader_enabled = (config or {}).get("finvader_enabled", False)
+        if HAS_FINVADER and (finvader_enabled or config is None):
+            try:
+                f_score = finvader(headline, indicator='compound', use_sentibignomics=True, use_henry=True)
+                finvader_score = round(float(f_score), 3)
+                if finvader_score >= 0.2:
+                    finvader_label = "Positive"
+                elif finvader_score <= -0.2:
+                    finvader_label = "Negative"
+                else:
+                    finvader_label = "Neutral"
+            except Exception as e:
+                logger.debug("FinVADER library calculation error: %s", e)
 
         # Step 2: Parse contextual financial signals
         signals = ContextualSentimentParser.parse_signals(headline)
@@ -353,6 +378,10 @@ class CreditRiskIntelligenceEngine:
             credit_risk = "NEUTRAL"
             overall_sentiment = "NEUTRAL"
 
+        # Override sentiment if finvader_enabled is explicitly set and finvader_label is available
+        if finvader_enabled and finvader_label and not signals:
+            overall_sentiment = finvader_label.upper()
+
         # Determine Key Risk Signal
         if has_negative_rating:
             key_risk_signal = "Rating Downgrade Risk"
@@ -372,6 +401,8 @@ class CreditRiskIntelligenceEngine:
             key_risk_signal = "Capital Structure Strengthening"
         elif signals:
             key_risk_signal = "Financial Event Tracked"
+        elif finvader_enabled and finvader_label and finvader_label != "Neutral":
+            key_risk_signal = f"FinVADER {finvader_label}"
         else:
             key_risk_signal = "Routine News"
 
@@ -388,6 +419,8 @@ class CreditRiskIntelligenceEngine:
             "credit_risk": credit_risk,
             "key_risk_signal": key_risk_signal,
             "baseline_vader_score": baseline_vader_score,
+            "finvader_score": finvader_score,
+            "finvader_label": finvader_label,
             "asset_quality": dimensions["asset_quality"],
             "capital_liquidity": dimensions["capital_liquidity"],
             "earnings_nav": dimensions["earnings_nav"],
@@ -553,7 +586,7 @@ class IntelEngine:
     def analyze(cls, headline: str, source: str,
                 portfolio: List[Dict], industries: List[str],
                 keywords: List[str], corpus_stats: Optional[Dict[str, Any]] = None,
-                provider_count: int = 1) -> Dict[str, Any]:
+                provider_count: int = 1, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Full analysis pipeline. Returns company, industry, event, sentiment, score.
         Enhanced 7-component relevance scoring.
@@ -616,7 +649,7 @@ class IntelEngine:
         s_multi = min(5.0, (provider_count - 1) * 2.5) if provider_count > 1 else 0.0
 
         # Run Credit Risk Intelligence Engine
-        matrix = CreditRiskIntelligenceEngine.analyze(headline)
+        matrix = CreditRiskIntelligenceEngine.analyze(headline, config=config)
 
         score = round(min(100.0, max(0.0, s_comp + s_kw + s_src + s_fresh + s_ind + s_sent + s_multi)), 1)
 

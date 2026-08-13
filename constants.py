@@ -52,6 +52,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "db_path": os.path.join(APP_DIR, "news_intelligence.db"),
     "theme": "Dark",
     "domain_filter_enabled": False,
+    "finvader_enabled": False,
     "stagger_delay_seconds": 1.5,
     "recency_window": "7d",
     # Search engine settings

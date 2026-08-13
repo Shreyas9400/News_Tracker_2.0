@@ -642,6 +642,8 @@ a.headline-link:hover { color: var(--accent-blue); }
       <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Parallel Workers</label><input type="number" id="setWorkers" min="1" max="8" style="flex:1;"></div>
       <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Domain Filtering</label>
         <select id="setDomainFilter" style="flex:1;"><option value="0">Off (Full Web)</option><option value="1">On (Whitelisted Only)</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">FinVADER Sentiment Engine</label>
+        <select id="setFinVader" style="flex:1;"><option value="0">Off (Contextual Credit Engine)</option><option value="1">On (Use FinVADER Library)</option></select></div>
       <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 14px;">🔍 Provider Toggles</h3>
       <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google News</label><select id="setGoogle" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
       <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google Finance RSS</label><select id="setGoogleFinance" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
@@ -1334,6 +1336,7 @@ async function loadSettings() {
   document.getElementById('setStagger').value = appSettings.stagger_delay_seconds || 1.5;
   document.getElementById('setWorkers').value = appSettings.max_workers || 4;
   document.getElementById('setDomainFilter').value = appSettings.domain_filter_enabled ? '1' : '0';
+  document.getElementById('setFinVader').value = appSettings.finvader_enabled ? '1' : '0';
   document.getElementById('setGoogle').value = appSettings.google_enabled !== false ? '1' : '0';
   document.getElementById('setBing').value = appSettings.bing_enabled !== false ? '1' : '0';
   document.getElementById('setDDG').value = appSettings.duckduckgo_enabled !== false ? '1' : '0';
@@ -1356,6 +1359,7 @@ async function saveSettings() {
     stagger_delay_seconds: parseFloat(document.getElementById('setStagger').value),
     max_workers: parseInt(document.getElementById('setWorkers').value),
     domain_filter_enabled: document.getElementById('setDomainFilter').value === '1',
+    finvader_enabled: document.getElementById('setFinVader').value === '1',
     google_enabled: document.getElementById('setGoogle').value === '1',
     bing_enabled: document.getElementById('setBing').value === '1',
     duckduckgo_enabled: document.getElementById('setDDG').value === '1',
@@ -1403,7 +1407,8 @@ function openCreditModal(jsonStr) {
     document.getElementById('cmCompany').textContent = (item.company || 'General') + ' | ' + (item.source || '');
     document.getElementById('cmRiskPill').textContent = (item.credit_risk || 'NEUTRAL') + ' RISK';
     document.getElementById('cmSignal').textContent = item.key_risk_signal || 'Routine News';
-    document.getElementById('cmVader').textContent = (item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A';
+    const fvStr = (matrix.finvader_score !== null && matrix.finvader_score !== undefined) ? ` | FinVADER: ${matrix.finvader_score}` : '';
+    document.getElementById('cmVader').textContent = ((item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A') + fvStr;
     document.getElementById('cmConfidence').textContent = matrix.confidence ? (matrix.confidence * 100).toFixed(0) + '%' : '50%';
 
     // Dimensions

@@ -696,6 +696,7 @@ class FetcherEngine:
                 it["title"], it.get("source", provider_key),
                 portfolio, industries, keywords,
                 corpus_stats=corpus_stats,
+                config=self.config,
             )
 
             if intel["relevance_score"] < min_ingest_score:
