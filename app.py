@@ -196,7 +196,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json(self.server.app_db.get_visibility())
 
         elif path == "/api/earnings/calendar":
-            qs = urllib.parse.parse_qs(parsed.query)
             comp = qs.get("company", ["All"])[0]
             qtr = qs.get("quarter", ["All"])[0]
             st = qs.get("status", ["All"])[0]
@@ -223,7 +222,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self._json(events)
 
         elif path == "/api/earnings/results":
-            qs = urllib.parse.parse_qs(parsed.query)
             comp = qs.get("company", ["All"])[0]
             qtr = qs.get("quarter", ["All"])[0]
             results = self.server.app_db.get_earnings_results(company=comp, quarter=qtr)

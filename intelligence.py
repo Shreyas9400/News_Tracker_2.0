@@ -677,6 +677,8 @@ class IntelEngine:
         s_sent = 5.0 if sentiment in ("Very Negative", "Very Positive") else (3.0 if sentiment in ("Negative", "Positive") else 1.0)
 
         # 7. Multi-Provider Bonus (0-5) — NEW
+        s_multi = min(5.0, (provider_count - 1) * 2.5) if provider_count > 1 else 0.0
+
         # Run Credit Risk Intelligence Engine
         matrix = CreditRiskIntelligenceEngine.analyze(headline, config=config)
 
