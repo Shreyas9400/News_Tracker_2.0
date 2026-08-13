@@ -275,6 +275,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.server.app_fetcher.start()
             self._json({"ok": True})
 
+        elif path == "/api/earnings/trigger_sweep":
+            res = self.server.app_fetcher.run_earnings_sweep()
+            self._json({"ok": True, "result": res})
+
         elif path == "/api/headlines/clear":
             self.server.app_db.clear_all_headlines()
             self._json({"ok": True})

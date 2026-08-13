@@ -545,6 +545,51 @@ class FetcherEngine:
             self.q.put({"type": "DONE", "ts": datetime.datetime.now().strftime("%H:%M:%S")})
             logger.info("✅ Discovery cycle complete.")
 
+    def run_earnings_sweep(self) -> Dict[str, Any]:
+        """Dedicated trigger for Earnings & Future Reporting Intelligence Sweep."""
+        portfolio = self.db.get_portfolio()
+        uas = self.config.get("user_agents", DEFAULT_CONFIG["user_agents"])
+        recency = self.config.get("recency_window", "7d")
+        s_date = self.config.get("custom_start_date", "")
+        e_date = self.config.get("custom_end_date", "")
+
+        earnings_keywords = [
+            "conference call scheduled", "to report Q", "announces date for",
+            "quarterly results", "reports Q", "NAV per share", "NII per share",
+            "earnings release", "financial results"
+        ]
+
+        total_sourced = 0
+        total_events_saved = 0
+
+        for comp in portfolio:
+            company_name = comp["company"]
+            ticker = comp.get("ticker", "")
+            aliases = comp.get("aliases", [company_name])
+
+            # Build targeted Google query for earnings announcements
+            q_earn = QueryBuilder.build_google(company_name, aliases, earnings_keywords, [], recency, ticker=ticker, start_date=s_date, end_date=e_date)
+            items = self.google.fetch(q_earn, uas)
+            total_sourced += len(items)
+
+            for it in items:
+                try:
+                    from intelligence import DeterministicEarningsParser
+                    ev = DeterministicEarningsParser.detect_future_earnings(it["title"], company=company_name, url=it["link"])
+                    if ev and self.db.save_earnings_calendar(ev):
+                        total_events_saved += 1
+                    met = DeterministicEarningsParser.extract_quarterly_metrics(it["title"], company=company_name, url=it["link"])
+                    if met and self.db.save_earnings_results(met):
+                        total_events_saved += 1
+                except Exception:
+                    pass
+
+        return {
+            "total_sourced": total_sourced,
+            "total_events_saved": total_events_saved,
+            "companies_swept": len(portfolio)
+        }
+
     def _log_terminal_analysis(self, start_ts: str):
         """Prints a comprehensive terminal analysis summary report at the end of each run."""
         s = self.stats

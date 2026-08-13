@@ -638,6 +638,7 @@ a.headline-link:hover { color: var(--accent-blue); }
           <option value="PENDING_REVIEW">Pending Review</option>
           <option value="REPORTED">Reported</option>
         </select>
+        <button class="btn btn-primary" onclick="triggerEarningsSweep()" id="btnEarnSweep">🔄 Trigger Earnings Sweep</button>
       </div>
     </div>
 
@@ -1576,6 +1577,24 @@ async function loadEarningsTab() {
         </div>
       `;
     }).join('');
+  }
+}
+
+async function triggerEarningsSweep() {
+  const btn = document.getElementById('btnEarnSweep');
+  if (btn) { btn.disabled = true; btn.textContent = '🔄 Sweeping Earnings...'; }
+  try {
+    const res = await api('/api/earnings/trigger_sweep', 'POST', {});
+    if (res && res.ok) {
+      alert(`Earnings Sweep Complete!\n\n• Sourced: ${res.result.total_sourced} items\n• Saved: ${res.result.total_events_saved} new events/metrics`);
+      await loadEarningsTab();
+    } else {
+      alert('Sweep completed.');
+    }
+  } catch(e) {
+    alert('Error running earnings sweep: ' + e);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🔄 Trigger Earnings Sweep'; }
   }
 }
 </script>
