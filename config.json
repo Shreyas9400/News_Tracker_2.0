@@ -9,7 +9,7 @@
   "min_relevance_notification": 50,
   "min_relevance_ingest": 40,
   "volume_spike_threshold_percent": 200,
-  "recency_window": "custom",
+  "recency_window": "7d",
   "custom_start_date": "2026-04-01",
   "custom_end_date": "2026-08-13",
   "db_path": "/Users/drsayalijadhav/.gemini/antigravity-ide/scratch/news_intelligence_app/news_intelligence.db",
