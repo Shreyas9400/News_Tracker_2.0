@@ -651,12 +651,12 @@ a.headline-link:hover { color: var(--accent-blue); }
       <table>
         <thead>
           <tr>
-            <th style="width:20%;">Company Entity</th>
+            <th style="width:22%;">Company Entity</th>
             <th style="width:10%;">Quarter</th>
             <th style="width:18%;">Reporting Date &amp; Time</th>
-            <th style="width:15%;">Status &amp; Countdown</th>
-            <th style="width:27%;">Source Provenance / Announcement Headline</th>
-            <th style="width:10%;">Actions</th>
+            <th style="width:12%;">Status</th>
+            <th style="width:13%;">Countdown</th>
+            <th style="width:25%;">Source News &amp; Provenance</th>
           </tr>
         </thead>
         <tbody id="earningsCalendarTableBody">
@@ -1554,12 +1554,9 @@ async function loadEarningsTab() {
           <td><strong style="color:var(--text-primary);">${esc(ev.company_name)}</strong></td>
           <td><span style="background:rgba(59,130,246,0.15);color:#60a5fa;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">${esc(ev.quarter)}</span></td>
           <td style="font-weight:600;color:var(--accent-blue);">${esc(ev.reporting_date || 'TBD')} (${esc(ev.conf_call_time || 'TBD')})</td>
-          <td>
-            <span style="background:${stBg};color:${stColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-right:6px;">${esc(ev.status)}</span>
-            <span style="font-size:11px;font-weight:700;color:var(--accent-green);">${esc(ev.countdown)}</span>
-          </td>
-          <td style="font-size:11.5px;max-width:320px;white-space:normal;">${provHtml}</td>
-          <td>${ev.webcast_url ? `<a href="${esc(ev.webcast_url)}" target="_blank" class="btn btn-primary" style="padding:2px 6px;font-size:10.5px;">🎙️ Webcast</a>` : '<span style="color:var(--text-muted);font-size:11px;">-</span>'}</td>
+          <td><span style="background:${stBg};color:${stColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${esc(ev.status)}</span></td>
+          <td><span style="font-size:11.5px;font-weight:700;color:${ev.countdown && ev.countdown.includes('REPORTED') ? 'var(--accent-green)' : '#60a5fa'};">${esc(ev.countdown)}</span></td>
+          <td style="font-size:11.5px;max-width:360px;white-space:normal;">${provHtml}</td>
         </tr>
       `;
     }).join('');

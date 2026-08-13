@@ -177,6 +177,33 @@ class GoogleFinanceProvider:
 
 
 # ---------------------------------------------------------------------------
+# Provider: Yahoo Finance RSS (ticker-targeted earnings & corporate releases)
+# ---------------------------------------------------------------------------
+class YahooFinanceProvider:
+    """Fetches real-time corporate news & earnings announcements via Yahoo Finance RSS."""
+    RSS_URL = "https://feeds.finance.yahoo.com/rss/2.0/headline?s={ticker}&region=US&lang=en-US"
+
+    def __init__(self, config: Dict[str, Any]):
+        self.enabled = config.get("yahoo_finance_enabled", True)
+        self.name = "Yahoo Finance"
+
+    def fetch(self, ticker: str, uas: List[str]) -> List[Dict[str, Any]]:
+        if not self.enabled or not ticker:
+            return []
+        url = self.RSS_URL.format(ticker=urllib.parse.quote(ticker))
+        raw = fetch_with_retry(url, uas, self.name, max_retries=2, timeout=6)
+        if not raw or len(raw) < 100:
+            return []
+        items = parse_rss_items(raw)
+        for it in items:
+            it["source"] = f"Yahoo Finance ({ticker})"
+        return items
+
+    def get_delay(self) -> float:
+        return random.uniform(0.5, 1.5)
+
+
+# ---------------------------------------------------------------------------
 # Provider: Bing News (HTML scrape — extracts news links from bing.com/news)
 # ---------------------------------------------------------------------------
 class BingNewsProvider:
@@ -480,6 +507,7 @@ class FetcherEngine:
         # Initialize providers
         self.google = GoogleNewsProvider(config)
         self.google_finance = GoogleFinanceProvider(config)
+        self.yahoo = YahooFinanceProvider(config)
         self.bing = BingNewsProvider(config)
         self.duckduckgo = DuckDuckGoProvider(config)
         self.gdelt = GDELTProvider(config)
@@ -580,19 +608,26 @@ class FetcherEngine:
             ticker = comp.get("ticker", "")
             aliases = comp.get("aliases", [company_name])
 
-            # Query 1: Google News search for earnings releases
+            # Query 1: Yahoo Finance RSS feed (ticker-targeted)
+            items_y = []
+            if ticker:
+                logger.info("🔍 [Yahoo Finance RSS] Fetching ticker earnings: %s", ticker)
+                items_y = self.yahoo.fetch(ticker, uas)
+                total_sourced += len(items_y)
+
+            # Query 2: Google News search for earnings releases
             q_g = f'("{company_name}" OR "{ticker}") AND ("earnings release" OR "conference call" OR "financial results")'
             logger.info("🔍 [Google News] Searching Earnings: %s", q_g)
             items_g = self.google.fetch(q_g, uas)
             total_sourced += len(items_g)
 
-            # Query 2: Bing News search for results announcements
+            # Query 3: Bing News search for results announcements
             q_b = f'("{company_name}" OR "{ticker}") AND ("announces results" OR "reports quarter" OR "NAV per share")'
             logger.info("🔍 [Bing News] Searching Earnings: %s", q_b)
             items_b = self.bing.fetch(q_b, uas)
             total_sourced += len(items_b)
 
-            all_items = items_g + items_b
+            all_items = items_y + items_g + items_b
 
             for it in all_items:
                 try:
