@@ -1,0 +1,38 @@
+{
+  "refresh_interval_minutes": 60,
+  "enable_notifications": true,
+  "enable_sound_alerts": true,
+  "sound_volume": 0.8,
+  "quiet_hours_enabled": false,
+  "quiet_hours_start": "22:00",
+  "quiet_hours_end": "07:00",
+  "min_relevance_notification": 50,
+  "min_relevance_ingest": 40,
+  "volume_spike_threshold_percent": 200,
+  "recency_window": "custom",
+  "custom_start_date": "2026-04-01",
+  "custom_end_date": "2026-08-13",
+  "db_path": "/Users/drsayalijadhav/.gemini/antigravity-ide/scratch/news_intelligence_app/news_intelligence.db",
+  "theme": "Dark",
+  "domain_filter_enabled": false,
+  "stagger_delay_seconds": 4,
+  "google_delay_range": [
+    3,
+    8
+  ],
+  "google_max_requests_per_cycle": 20,
+  "max_workers": 4,
+  "max_retries": 3,
+  "page_size": 50,
+  "google_enabled": true,
+  "bing_enabled": true,
+  "duckduckgo_enabled": true,
+  "gdelt_enabled": true,
+  "rss_enabled": true,
+  "user_agents": [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+  ]
+}

@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>News Intelligence Terminal</title>
+<meta name="description" content="Real-time news intelligence dashboard with multi-provider search, sentiment analysis, and portfolio tracking.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #080b12; --bg-secondary: #0f1419; --bg-card: #151c28;
+  --bg-card-hover: #1a2435; --bg-glass: rgba(21,28,40,0.75);
+  --border: rgba(56,68,90,0.5); --border-bright: rgba(88,166,255,0.3);
+  --text-primary: #e2e8f0; --text-secondary: #8b9bb4; --text-muted: #5a6a80;
+  --accent-blue: #58a6ff; --accent-green: #34d399; --accent-red: #f87171;
+  --accent-yellow: #fbbf24; --accent-purple: #a78bfa; --accent-cyan: #22d3ee;
+  --accent-orange: #fb923c;
+  --gradient-blue: linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%);
+  --gradient-card: linear-gradient(135deg, rgba(21,28,40,0.9), rgba(15,20,25,0.95));
+  --shadow-card: 0 4px 24px rgba(0,0,0,0.3);
+  --shadow-glow: 0 0 20px rgba(88,166,255,0.08);
+  --radius: 12px; --radius-sm: 8px; --radius-xs: 6px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-primary); color: var(--text-primary);
+  line-height: 1.5; min-height: 100vh;
+  background-image: radial-gradient(ellipse at 50% 0%, rgba(88,166,255,0.03) 0%, transparent 60%);
+}
+
+/* HEADER */
+.header {
+  background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+  padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.header h1 { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 10px; letter-spacing: -0.3px; }
+.header h1 .logo-accent { color: var(--accent-cyan); font-weight: 800; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+
+/* BUTTONS */
+.btn {
+  padding: 7px 16px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-primary); cursor: pointer;
+  font-size: 12px; font-weight: 600; font-family: 'Inter', sans-serif;
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1); letter-spacing: 0.01em;
+}
+.btn:hover { background: var(--bg-card-hover); border-color: var(--accent-blue); transform: translateY(-1px); box-shadow: var(--shadow-glow); }
+.btn:active { transform: translateY(0); }
+.btn-primary { background: linear-gradient(135deg, #1d6f42, #238636); border-color: #238636; color: #fff; }
+.btn-primary:hover { background: linear-gradient(135deg, #238636, #2ea043); box-shadow: 0 0 16px rgba(35,134,54,0.3); }
+.btn-danger { background: linear-gradient(135deg, #9a2020, #da3633); border-color: #da3633; color: #fff; }
+.btn-danger:hover { background: linear-gradient(135deg, #da3633, #f85149); }
+
+.status-badge {
+  font-size: 11px; padding: 4px 12px; border-radius: 20px; font-weight: 600;
+  background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
+  letter-spacing: 0.02em;
+}
+.status-badge.running { color: var(--accent-green); border-color: var(--accent-green); animation: pulse 1.5s infinite; box-shadow: 0 0 12px rgba(52,211,153,0.15); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+/* NAV */
+.nav {
+  display: flex; gap: 0; background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border); padding: 0 28px; overflow-x: auto;
+}
+.nav-tab {
+  padding: 12px 18px; font-size: 12.5px; color: var(--text-muted);
+  cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: all 0.2s; font-weight: 600; letter-spacing: 0.01em;
+}
+.nav-tab:hover { color: var(--text-secondary); }
+.nav-tab.active { color: var(--accent-blue); border-bottom-color: var(--accent-blue); }
+
+/* MAIN */
+.main { padding: 24px 28px 80px; max-width: 1600px; margin: 0 auto; }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+/* SECTION HEADERS */
+.section-title {
+  font-size: 14px; font-weight: 700; margin-bottom: 16px; display: flex;
+  align-items: center; gap: 10px; color: var(--text-primary); letter-spacing: -0.2px;
+}
+.section-subtitle { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+
+/* METRIC CARDS & CTAs */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.card {
+  background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; transition: all 0.25s cubic-bezier(0.4,0,0.2,1); cursor: pointer;
+  backdrop-filter: blur(8px); position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: transparent; transition: background 0.3s;
+}
+.card:hover { border-color: var(--border-bright); transform: translateY(-3px); box-shadow: var(--shadow-card); }
+.card:hover::before { background: var(--accent-blue); }
+.card-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; font-weight: 600; }
+.card-value { font-size: 32px; font-weight: 800; font-family: 'JetBrains Mono', monospace; letter-spacing: -1px; margin-bottom: 12px; }
+.card-value.blue { color: var(--accent-blue); }
+.card-value.green { color: var(--accent-green); }
+.card-value.red { color: var(--accent-red); }
+.card-value.yellow { color: var(--accent-yellow); }
+.card-value.purple { color: var(--accent-purple); }
+.card-value.cyan { color: var(--accent-cyan); }
+.card-cta {
+  font-size: 11.5px; font-weight: 700; color: var(--accent-blue);
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 10px; border-top: 1px solid rgba(56,68,90,0.3); transition: color 0.2s;
+}
+.card:hover .card-cta { color: #80bfff; }
+.section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-cta-btn {
+  font-size: 12px; font-weight: 600; color: var(--accent-blue); background: rgba(88,166,255,0.08);
+  padding: 5px 12px; border-radius: var(--radius-xs); border: 1px solid rgba(88,166,255,0.2);
+  cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.section-cta-btn:hover { background: rgba(88,166,255,0.18); border-color: var(--accent-blue); transform: translateX(2px); }
+
+/* DAILY TOP NEWS */
+.daily-news-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.news-card {
+  background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 18px; transition: all 0.25s; cursor: pointer; position: relative;
+  backdrop-filter: blur(8px);
+}
+.news-card:hover { border-color: var(--border-bright); transform: translateY(-1px); box-shadow: var(--shadow-card); }
+.news-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.news-card-title { font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--text-primary); flex: 1; }
+.news-card-title:hover { color: var(--accent-blue); }
+.news-card-meta { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.news-card-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; background: rgba(88,166,255,0.1); color: var(--accent-blue); border: 1px solid rgba(88,166,255,0.2); }
+.news-card-source { font-size: 11px; color: var(--text-muted); }
+.news-card-score { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+
+/* COMPANY SENTIMENT TRACKER */
+.sentiment-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.sentiment-card {
+  background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; transition: all 0.25s; cursor: pointer;
+}
+.sentiment-card:hover { border-color: var(--border-bright); transform: translateY(-1px); }
+.sentiment-card-name { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+.sentiment-bar-row { display: flex; gap: 4px; height: 6px; border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.sentiment-bar-row .bar-pos { background: var(--accent-green); }
+.sentiment-bar-row .bar-neu { background: var(--text-muted); }
+.sentiment-bar-row .bar-neg { background: var(--accent-red); }
+.sentiment-card-stats { display: flex; gap: 12px; font-size: 11px; color: var(--text-secondary); }
+.sentiment-stat { display: flex; align-items: center; gap: 4px; }
+.sentiment-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* TAG CATEGORIES */
+.tag-grid { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 28px; }
+.tag-pill {
+  padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--bg-card); border: 1px solid var(--border); cursor: pointer;
+  color: var(--text-secondary); transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+}
+.tag-pill:hover, .tag-pill.active { background: rgba(88,166,255,0.1); color: var(--accent-blue); border-color: rgba(88,166,255,0.3); }
+.tag-pill .tag-count {
+  background: rgba(88,166,255,0.15); color: var(--accent-blue); font-size: 10px;
+  padding: 1px 6px; border-radius: 10px; font-weight: 700; font-family: 'JetBrains Mono', monospace;
+}
+
+/* SPLIT PANELS */
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+.panel {
+  background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; backdrop-filter: blur(8px);
+}
+.panel-title { font-size: 12px; font-weight: 700; margin-bottom: 14px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; display:flex; justify-content:space-between; align-items:center; }
+.trend-item {
+  display: flex; justify-content: space-between; align-items: center; padding: 10px 0;
+  border-bottom: 1px solid rgba(56,68,90,0.3); font-size: 13px; cursor: pointer;
+  transition: all 0.15s;
+}
+.trend-item:hover { padding-left: 6px; color: var(--accent-blue); }
+.trend-item:last-child { border-bottom: none; }
+.trend-count {
+  background: rgba(88,166,255,0.1); padding: 3px 10px; border-radius: 12px;
+  font-size: 11px; color: var(--accent-blue); font-weight: 700; font-family: 'JetBrains Mono', monospace;
+}
+
+/* TAXONOMY BOX */
+.taxonomy-box {
+  background: var(--gradient-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 28px; backdrop-filter: blur(8px);
+}
+.taxonomy-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tax-pill {
+  padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+  background: var(--bg-secondary); border: 1px solid var(--border); cursor: pointer; color: var(--text-secondary);
+  transition: all 0.2s;
+}
+.tax-pill:hover, .tax-pill.active { background: rgba(88,166,255,0.1); color: var(--accent-blue); border-color: rgba(88,166,255,0.3); }
+.tag-cloud { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag-item {
+  background: rgba(8,11,18,0.6); border: 1px solid var(--border); padding: 5px 12px; border-radius: var(--radius-xs);
+  font-size: 12px; color: var(--text-primary); cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.tag-item:hover { border-color: var(--accent-blue); color: var(--accent-blue); transform: scale(1.03); }
+.tag-badge { background: rgba(52,211,153,0.15); color: var(--accent-green); font-size: 10px; padding: 1px 6px; border-radius: 8px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+/* FILTER BAR */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.filter-bar input, .filter-bar select {
+  padding: 8px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-primary); font-size: 12.5px;
+  font-family: 'Inter', sans-serif; transition: border-color 0.2s;
+}
+.filter-bar input { flex: 1; min-width: 200px; }
+.filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 0 2px rgba(88,166,255,0.1); }
+.filter-bar select { min-width: 130px; cursor: pointer; }
+
+/* PAGINATION */
+.pagination {
+  display: flex; justify-content: center; align-items: center; gap: 8px;
+  padding: 16px 0; margin-top: 12px;
+}
+.pagination .page-btn {
+  padding: 6px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-secondary); cursor: pointer;
+  font-size: 12px; font-weight: 600; transition: all 0.2s; font-family: 'Inter', sans-serif;
+}
+.pagination .page-btn:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+.pagination .page-btn.active { background: rgba(88,166,255,0.15); color: var(--accent-blue); border-color: var(--accent-blue); }
+.pagination .page-btn:disabled { opacity: 0.4; cursor: default; }
+.pagination .page-info { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+/* TABLE */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th {
+  background: var(--bg-secondary); color: var(--text-muted); font-weight: 700;
+  padding: 10px 14px; text-align: left; position: sticky; top: 0; cursor: pointer;
+  border-bottom: 1px solid var(--border); white-space: nowrap; user-select: none;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+th:hover { color: var(--text-secondary); }
+td { padding: 10px 14px; border-bottom: 1px solid rgba(56,68,90,0.3); vertical-align: middle; }
+tr { transition: background 0.15s; }
+tr:hover { background: var(--bg-card-hover); }
+tr.high-relevance { border-left: 3px solid var(--accent-green); }
+
+/* SENTIMENT BADGES */
+.sentiment-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+  cursor: pointer; position: relative; transition: all 0.2s;
+}
+.sentiment-badge:hover { transform: scale(1.05); }
+.sentiment-vpos { background: rgba(52,211,153,0.15); color: var(--accent-green); }
+.sentiment-pos  { background: rgba(52,211,153,0.1); color: #56d364; }
+.sentiment-neu  { background: rgba(139,155,180,0.1); color: var(--text-secondary); }
+.sentiment-neg  { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+.sentiment-vneg { background: rgba(248,113,113,0.2); color: #ff7b72; }
+.sentiment-user { outline: 2px solid var(--accent-yellow); outline-offset: 1px; }
+
+/* SENTIMENT DROPDOWN */
+.sentiment-dropdown {
+  position: absolute; top: 100%; left: 0; z-index: 50;
+  background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-xs);
+  padding: 4px; min-width: 140px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  display: none;
+}
+.sentiment-dropdown.show { display: block; }
+.sentiment-dropdown-item {
+  padding: 6px 10px; font-size: 11px; cursor: pointer; border-radius: 4px;
+  transition: background 0.15s; font-weight: 600;
+}
+.sentiment-dropdown-item:hover { background: var(--bg-card-hover); }
+
+.score-bar { display: inline-block; height: 6px; border-radius: 3px; vertical-align: middle; }
+a.headline-link { color: var(--text-primary); text-decoration: none; font-weight: 600; transition: color 0.15s; }
+a.headline-link:hover { color: var(--accent-blue); }
+
+/* MANAGEMENT */
+.mgmt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.mgmt-header h2 { font-size: 16px; font-weight: 700; letter-spacing: -0.3px; }
+.form-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.form-row input, .form-row select { padding: 8px 14px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-family: 'Inter', sans-serif; font-size: 12.5px; }
+.form-row input { flex: 1; min-width: 120px; }
+.form-row input:focus { outline: none; border-color: var(--accent-blue); }
+.toggle-btn { cursor: pointer; font-size: 16px; transition: transform 0.15s; }
+.toggle-btn:hover { transform: scale(1.1); }
+.edit-btn { cursor: pointer; color: var(--accent-blue); font-size: 12px; margin-right: 8px; font-weight: 600; }
+.edit-btn:hover { text-decoration: underline; }
+.delete-btn { cursor: pointer; color: var(--accent-red); font-size: 12px; font-weight: 600; }
+.delete-btn:hover { text-decoration: underline; }
+.code-block { background: rgba(8,11,18,0.8); border:1px solid var(--border); padding:10px 14px; border-radius:var(--radius-xs); font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--accent-blue); overflow-x:auto; }
+
+/* MODALS */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+.modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; width: 90%; max-width: 600px; box-shadow: 0 16px 48px rgba(0,0,0,0.5); animation: modalIn 0.25s ease; }
+@keyframes modalIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+.modal h3 { margin-bottom: 18px; font-size: 16px; font-weight: 700; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+/* FOOTER */
+.footer {
+  background: var(--bg-secondary); border-top: 1px solid var(--border);
+  padding: 8px 28px; font-size: 11px; color: var(--text-muted);
+  display: flex; justify-content: space-between;
+  position: fixed; bottom: 0; width: 100%; z-index: 100;
+  backdrop-filter: blur(12px);
+}
+.empty-state { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+.star-btn { cursor: pointer; font-size: 16px; user-select: none; transition: transform 0.15s; }
+.star-btn:hover { transform: scale(1.2); }
+.star-btn.starred { color: var(--accent-yellow); }
+.reviewed-dimmed { opacity: 0.45; }
+.filter-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.nav-filter-btn { padding: 6px 12px; font-size: 11px; font-weight: 600; }
+.nav-filter-btn.active { background: rgba(88,166,255,0.1); border-color: rgba(88,166,255,0.3); color: var(--accent-blue); }
+.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.live-counter-badge { background: rgba(248,113,113,0.15); color: var(--accent-red); font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+.reviewed-tag { background: rgba(139,155,180,0.1); color: var(--text-muted); font-size: 9px; padding: 2px 6px; border-radius: 4px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.category-group-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; padding: 18px; }
+.category-group-title { font-size: 14px; font-weight: 700; color: var(--accent-blue); margin-bottom: 12px; display: flex; justify-content: space-between; }
+.info-box { background: var(--bg-card); padding: 14px 18px; border-radius: var(--radius-xs); border: 1px solid var(--border); margin-bottom: 20px; font-size: 12px; color: var(--text-secondary); line-height: 1.7; }
+
+@media (max-width: 768px) {
+  .split { grid-template-columns: 1fr; }
+  .daily-news-grid { grid-template-columns: 1fr; }
+  .sentiment-grid { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <h1>📰 <span class="logo-accent">NEWS INTELLIGENCE</span> TERMINAL</h1>
+  <div class="header-actions">
+    <button class="btn" onclick="toggleAudioAlerts()" id="audioToggleBtn" title="Toggle audio notifications">🔊 Sound: ON</button>
+    <button class="btn btn-danger" onclick="confirmResetAllNews()" title="Clear all headlines">🗑️ Reset Data</button>
+    <span id="statusBadge" class="status-badge">Idle</span>
+    <button class="btn btn-primary" onclick="triggerRefresh()">🔄 Trigger Search</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-tab active" id="tabNav-dashboard" onclick="showTab('dashboard')">📊 Dashboard</div>
+  <div class="nav-tab" id="tabNav-news" onclick="showTab('news')">📰 News Terminal</div>
+  <div class="nav-tab" id="tabNav-portfolio" onclick="showTab('portfolio')">🏢 Portfolio</div>
+  <div class="nav-tab" id="tabNav-queries" onclick="showTab('queries')">📜 Query Inspector</div>
+  <div class="nav-tab" id="tabNav-industries" onclick="showTab('industries')">🏭 Industries</div>
+  <div class="nav-tab" id="tabNav-keywords" onclick="showTab('keywords')">🔑 Keywords</div>
+  <div class="nav-tab" id="tabNav-domains" onclick="showTab('domains')">🌐 Domains</div>
+  <div class="nav-tab" id="tabNav-settings" onclick="showTab('settings')">⚙️ Settings</div>
+</div>
+
+<div class="main">
+
+  <!-- ============ DASHBOARD TAB ============ -->
+  <div id="tab-dashboard" class="tab-content active">
+    <!-- Metric Cards -->
+    <div class="cards" id="metricsCards"></div>
+
+    <!-- Daily Top News -->
+    <div class="section-header-row">
+      <div class="section-title" style="margin-bottom:0;">📰 Daily Top Material News <span class="section-subtitle">Today's highest-relevance headlines across your portfolio</span></div>
+      <button class="section-cta-btn" onclick="showTab('news')">View All News Terminal ➔</button>
+    </div>
+    <div class="daily-news-grid" id="dailyNewsGrid"><div class="empty-state">Loading top news...</div></div>
+
+    <!-- Company Sentiment Tracker -->
+    <div class="section-header-row">
+      <div class="section-title" style="margin-bottom:0;">🏢 Company Sentiment Tracker <span class="section-subtitle">Weekly sentiment distribution per company</span></div>
+      <button class="section-cta-btn" onclick="showTab('portfolio')">Manage Portfolio Watchlist ➔</button>
+    </div>
+    <div class="sentiment-grid" id="companySentimentGrid"><div class="empty-state">Loading sentiment data...</div></div>
+
+    <!-- Tag Categories -->
+    <div class="section-header-row">
+      <div class="section-title" style="margin-bottom:0;">🏷️ Event Categories &amp; Tags <span class="section-subtitle">Click any tag to filter news</span></div>
+      <button class="section-cta-btn" onclick="showTab('queries')">Configure Query Categories ➔</button>
+    </div>
+    <div class="tag-grid" id="dashboardTagGrid"><div class="empty-state">No tags yet</div></div>
+
+    <!-- Taxonomy Keywords -->
+    <div class="taxonomy-box">
+      <div class="panel-title"><span>🔍 Trending Keywords by Theme</span></div>
+      <div class="taxonomy-pills" id="dashboardTaxPills">
+        <div class="tax-pill active" onclick="loadTaxonomyCategory('All')">All Themes</div>
+        <div class="tax-pill" onclick="loadTaxonomyCategory('Earnings &amp; Financials')">💰 Earnings</div>
+        <div class="tax-pill" onclick="loadTaxonomyCategory('Mergers &amp; M&amp;A')">🤝 M&amp;A</div>
+        <div class="tax-pill" onclick="loadTaxonomyCategory('Funding &amp; Capital')">💵 Funding</div>
+        <div class="tax-pill" onclick="loadTaxonomyCategory('Asset Quality &amp; Credit Risk')">🛡️ Credit Risk</div>
+        <div class="tax-pill" onclick="loadTaxonomyCategory('Governance &amp; Regulatory')">⚖️ Governance</div>
+      </div>
+      <div class="tag-cloud" id="dashboardTagCloud"><div class="empty-state" style="padding:15px;">Trigger a search to discover keywords</div></div>
+    </div>
+
+    <!-- Trending Companies & Industries -->
+    <div class="split">
+      <div class="panel">
+        <div class="panel-title"><span>🔥 Trending Companies</span></div>
+        <div id="trendingCompanies"><div class="empty-state">No data yet</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title"><span>📈 Industry Activity</span></div>
+        <div id="trendingIndustries"><div class="empty-state">No data yet</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NEWS TERMINAL TAB ============ -->
+  <div id="tab-news" class="tab-content">
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;box-shadow:var(--shadow-card);">
+      <!-- Row 1: Search + Presets + Action Buttons -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <input type="text" id="newsFilter" placeholder="🔍 Search headlines, companies, sources, keywords..." oninput="debounceLoadNews()" style="flex:2;min-width:240px;font-size:12.5px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <button class="btn nav-filter-btn active" id="btnFilterAll" onclick="setNewsFilterType('All')" style="font-size:11.5px;padding:6px 12px;">All News</button>
+          <button class="btn nav-filter-btn" id="btnFilterLive" onclick="setNewsFilterType('live')" style="font-size:11.5px;padding:6px 12px;">🔴 Live</button>
+          <button class="btn nav-filter-btn" id="btnFilterStarred" onclick="setNewsFilterType('starred')" style="font-size:11.5px;padding:6px 12px;">⭐ Starred</button>
+          <button class="btn nav-filter-btn" id="btnFilterHigh" onclick="setNewsFilterType('high_relevance')" style="font-size:11.5px;padding:6px 12px;">⚡ High (≥85)</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-left:auto;align-items:center;">
+          <button class="btn btn-danger" onclick="clearAllFilters()" style="padding:6px 14px;font-size:11.5px;font-weight:700;" title="Reset search input and all dropdown filters to default">🧹 Clear Filters</button>
+          <button class="btn btn-primary" onclick="markAllReviewed()" style="padding:6px 14px;font-size:11.5px;font-weight:600;">✓ Mark All Reviewed</button>
+        </div>
+      </div>
+
+      <!-- Row 2: Labeled Dropdown Filters in a Clean Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:10px;align-items:center;">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🏢 Company</label>
+          <select id="companyFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Companies</option></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🏭 Industry</label>
+          <select id="industryFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Industries</option></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🎭 Sentiment</label>
+          <select id="sentimentFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <option value="All">All Sentiments</option>
+            <option value="Very Positive">Very Positive</option>
+            <option value="Positive">Positive</option>
+            <option value="Neutral">Neutral</option>
+            <option value="Negative">Negative</option>
+            <option value="Very Negative">Very Negative</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🌐 Domain</label>
+          <select id="domainFilter" onchange="loadNews()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);"><option value="All">All Domains</option></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">📅 Timeline</label>
+          <select id="recencyFilter" onchange="onTerminalRecencyChange()" style="width:100%;font-size:11.5px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);">
+            <option value="All">All Dates</option>
+            <option value="1d">Past 24 Hours</option>
+            <option value="7d">Past 7 Days</option>
+            <option value="30d">Past 30 Days</option>
+            <option value="custom">Custom Date Range</option>
+          </select>
+        </div>
+        <div id="terminalCustomDateGroup" style="display:none;grid-column:span 2;">
+          <label style="display:block;font-size:10px;font-weight:700;color:var(--accent-yellow);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">🗓 Range (From ➔ To)</label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="date" id="dateFrom" onchange="loadNews()" title="From date" style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
+            <span style="font-size:10px;color:var(--text-muted);">to</span>
+            <input type="date" id="dateTo" onchange="loadNews()" title="To date" style="font-size:11px;padding:4px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);flex:1;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th style="width:30px">⭐</th>
+          <th onclick="sortNews('published_time')">Date ↕</th>
+          <th onclick="sortNews('headline')">Headline ↕</th>
+          <th onclick="sortNews('company')">Company ↕</th>
+          <th onclick="sortNews('industry')">Industry ↕</th>
+          <th onclick="sortNews('source')">Source ↕</th>
+          <th onclick="sortNews('sentiment')">Sentiment ↕</th>
+          <th onclick="sortNews('credit_risk')">Credit Risk ↕</th>
+          <th onclick="sortNews('key_risk_signal')">Key Signal ↕</th>
+          <th onclick="sortNews('relevance_score')">Score ↕</th>
+        </tr></thead>
+        <tbody id="newsBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="paginationControls"></div>
+  </div>
+
+  <!-- ============ PORTFOLIO TAB ============ -->
+  <div id="tab-portfolio" class="tab-content">
+    <div class="mgmt-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <h2>Portfolio &amp; Watchlist Manager</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="bulkTogglePortfolio(1)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to active search status">✅ Select All (Active)</button>
+        <button class="btn btn-danger" onclick="bulkTogglePortfolio(0)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to inactive">⬜ Deselect All</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="text" id="pCompany" placeholder="Company Name">
+      <input type="text" id="pTicker" placeholder="Ticker">
+      <input type="text" id="pIndustry" placeholder="Industry">
+      <input type="text" id="pCountry" placeholder="Country" value="USA">
+      <input type="text" id="pAliases" placeholder="Aliases (comma separated)">
+      <button class="btn btn-primary" onclick="addPortfolio()">+ Add</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th>Company</th><th>Ticker</th><th>Industry</th><th>Country</th><th>Aliases</th><th>Active</th><th>Actions</th>
+    </tr></thead><tbody id="portfolioBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ QUERY INSPECTOR TAB ============ -->
+  <div id="tab-queries" class="tab-content">
+    <div class="mgmt-header"><h2>🔬 Search Query Inspector &amp; Categorized Sweep Manager</h2></div>
+    <div class="info-box" style="line-height:1.8;">
+      💡 <strong>Why Categorized Modular Queries Yield Superior Results:</strong><br>
+      &bull; Putting 50+ OR keywords into a single search string causes search engines to truncate terms at the end.<br>
+      &bull; Running <em>distinct categorized query sweeps</em> (Financials/NAV, Credit/Redemption, M&amp;A, Governance) ensures 100% search precision for specific events.<br>
+      &bull; You can click ✏️ <strong>Edit Category</strong> below to customize names and keyword sets for each sweep.
+    </div>
+
+    <!-- ── Category Manager ── -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <h3 style="font-size:14px;color:var(--accent-green);margin:0;">📁 Modular Query Categories (Sweeps executed per company)</h3>
+      <button class="btn btn-primary" onclick="addQueryCategory()" style="font-size:12px;padding:6px 14px;">+ Add Query Category</button>
+    </div>
+    <div class="form-row" style="margin-bottom:12px;">
+      <input type="text" id="catName" placeholder="New Query Category Name (e.g. ESG &amp; Compliance)" style="flex:2;">
+      <input type="text" id="catKeywords" placeholder="Keywords (comma separated, e.g. ESG, sanction, fine)" style="flex:3;">
+    </div>
+    <div class="table-wrap" style="margin-bottom:28px;"><table><thead><tr>
+      <th>Category Sweep Name</th><th>Categorized Search Keywords</th><th>Active Sweep</th><th>Actions</th>
+    </tr></thead><tbody id="queryCategoriesBody"></tbody></table></div>
+
+    <!-- ── Interactive Live Query Tester ── -->
+    <div style="background:var(--bg-card);padding:16px 20px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:28px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="font-size:14px;font-weight:700;color:var(--accent-blue);margin:0;">⚡ Interactive Live Query Tester</h3>
+        <button class="btn btn-primary" onclick="runTestQuery()" style="font-size:12px;padding:6px 16px;" id="testQueryBtn">▶ Test Query</button>
+      </div>
+      <div class="form-row" style="margin-bottom:8px;">
+        <input type="text" id="testQueryInput" placeholder='Enter custom search query (e.g. ("Bain Capital Specialty Finance" OR "BCSF") AND ("redemption" OR "NAV") when:7d)' style="flex:1;font-family:var(--font-mono);font-size:12px;">
+        <select id="testQueryProvider" style="padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;min-width:160px;">
+          <option value="google">Google News RSS</option>
+          <option value="google_finance">Google Finance RSS</option>
+          <option value="bing">Bing News RSS</option>
+          <option value="ddg">DuckDuckGo HTML</option>
+        </select>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Assess Intelligence: Tests the query against the selected provider and shows live results.</div>
+      <div id="testQueryResults"></div>
+    </div>
+
+    <!-- ── Generated Query Preview (per company, per provider) ── -->
+    <div id="queryInspectorContainer"></div>
+  </div>
+
+  <!-- ============ INDUSTRIES TAB ============ -->
+  <div id="tab-industries" class="tab-content">
+    <div class="mgmt-header"><h2>🏭 Industry Watchlist (Synced from Portfolio)</h2></div>
+    <div class="info-box">
+      💡 <strong>Single Source of Truth:</strong> Industries are automatically populated directly from your active items in the <strong>Portfolio Tab</strong>. To add or change industries, edit the industry field on any company in the Portfolio tab.
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Industry Name</th><th>Companies Count</th><th>Actions</th></tr></thead><tbody id="industryBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ KEYWORDS TAB ============ -->
+  <div id="tab-keywords" class="tab-content">
+    <div class="mgmt-header"><h2>Intelligence Keywords</h2></div>
+    <div class="form-row">
+      <input type="text" id="kwWord" placeholder="New keyword">
+      <button class="btn btn-primary" onclick="addKeyword()">+ Add</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Keyword</th><th>Category</th><th>Active</th><th></th></tr></thead><tbody id="keywordBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ DOMAINS TAB ============ -->
+  <div id="tab-domains" class="tab-content">
+    <div class="mgmt-header"><h2>Domain Filter &amp; Website Visibility</h2></div>
+    <div class="info-box">
+      💡 <strong>Whitelisted Search Domains</strong> control where queries look when Domain Filtering is ON.<br>
+      <strong>Discovered Website Visibility</strong> is a UI display filter — hide unwanted sources from the news table.
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
+      <h3 style="margin:0;font-size:14px;color:var(--accent-blue)">Whitelisted Search Domains</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" onclick="bulkToggleDomains(1)" style="font-size:11px;padding:4px 12px;">✅ Select All</button>
+        <button class="btn btn-danger" onclick="bulkToggleDomains(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="text" id="domName" placeholder="domain.com">
+      <button class="btn btn-primary" onclick="addDomain()">+ Add</button>
+    </div>
+    <div class="table-wrap" style="margin-bottom:24px;"><table><thead><tr><th>Domain</th><th>Active</th><th></th></tr></thead><tbody id="domainBody"></tbody></table></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:20px 0 10px;">
+      <h3 style="margin:0;font-size:14px;color:var(--accent-green)">Discovered Website Visibility</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary" onclick="bulkToggleVisibility(1)" style="font-size:11px;padding:4px 12px;">☑️ Select All (Visible)</button>
+        <button class="btn btn-danger" onclick="bulkToggleVisibility(0)" style="font-size:11px;padding:4px 12px;">⬜ Deselect All (Hidden)</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <input type="text" id="visFilter" placeholder="🔍 Filter..." oninput="renderVisibilityTable()" style="flex:1;">
+      <input type="text" id="visNewDomain" placeholder="Add domain to block/allow" style="flex:1;">
+      <button class="btn btn-primary" onclick="addVisibilityDomain()">+ Add</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Website</th><th>Visible</th><th></th></tr></thead><tbody id="visibilityBody"></tbody></table></div>
+  </div>
+
+  <!-- ============ SETTINGS TAB ============ -->
+  <div id="tab-settings" class="tab-content">
+    <div class="mgmt-header"><h2>Application Settings</h2></div>
+    <div style="max-width:650px;">
+      <h3 style="font-size:14px;color:var(--accent-blue);margin-bottom:14px;">⚙️ Discovery &amp; Search</h3>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Recency Window</label>
+        <select id="setRecencyWindow" style="flex:1;" onchange="toggleCustomSettingsDateRange()"><option value="1d">Past 24 Hours</option><option value="7d">Past 7 Days</option><option value="30d">Past 30 Days</option><option value="custom">Custom Date Range (Timeline)</option><option value="any">Any Time</option></select></div>
+      <div class="form-row" id="setCustomDateRow" style="display:none;"><label style="width:220px;padding:8px 0;font-size:13px;">Custom Search Timeline</label>
+        <div style="flex:1;display:flex;gap:8px;align-items:center;">
+          <input type="date" id="setCustomStartDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+          <span style="font-size:12px;color:var(--text-secondary)">to</span>
+          <input type="date" id="setCustomEndDate" style="flex:1;padding:6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;">
+        </div></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Refresh Interval (min)</label><input type="number" id="setRefresh" min="1" max="60" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Min Relevance Ingest</label><input type="number" id="setMinIngest" min="0" max="100" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Min Relevance Notify</label><input type="number" id="setMinRelevance" min="0" max="100" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Stagger Delay (sec)</label><input type="number" id="setStagger" min="0.5" max="10" step="0.5" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Parallel Workers</label><input type="number" id="setWorkers" min="1" max="8" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Domain Filtering</label>
+        <select id="setDomainFilter" style="flex:1;"><option value="0">Off (Full Web)</option><option value="1">On (Whitelisted Only)</option></select></div>
+      <h3 style="font-size:14px;color:var(--accent-green);margin:24px 0 14px;">🔍 Provider Toggles</h3>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google News</label><select id="setGoogle" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Google Finance RSS</label><select id="setGoogleFinance" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Bing News</label><select id="setBing" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">DuckDuckGo</label><select id="setDDG" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">GDELT</label><select id="setGDELT" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <h3 style="font-size:14px;color:var(--accent-purple);margin:24px 0 14px;">🔔 Audio Notifications</h3>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Sound Alerts</label><select id="setEnableSound" style="flex:1;"><option value="1">Enabled</option><option value="0">Disabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Volume</label><input type="range" id="setSoundVolume" min="0.1" max="1.0" step="0.05" style="flex:1;"></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Quiet Hours</label><select id="setQuietHours" style="flex:1;"><option value="0">Disabled</option><option value="1">Enabled</option></select></div>
+      <div class="form-row"><label style="width:220px;padding:8px 0;font-size:13px;">Quiet Range</label><input type="time" id="setQuietStart" value="22:00" style="width:100px;"><span style="align-self:center;padding:0 4px;">to</span><input type="time" id="setQuietEnd" value="07:00" style="width:100px;"></div>
+      <div style="margin-top:20px;padding-top:15px;border-top:1px solid var(--border);display:flex;gap:12px;">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Save Settings</button>
+        <button class="btn btn-danger" onclick="confirmResetAllNews()">🗑️ Reset Data</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT PORTFOLIO MODAL -->
+<div id="editPortfolioModal" class="modal-overlay">
+  <div class="modal">
+    <h3>✏️ Edit Portfolio Item</h3>
+    <input type="hidden" id="editPId">
+    <div class="form-row" style="flex-direction:column;gap:10px;">
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Company Name</label><input type="text" id="editPCompany" style="width:100%;"></div>
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Ticker</label><input type="text" id="editPTicker" style="width:100%;"></div>
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Industry</label><input type="text" id="editPIndustry" style="width:100%;"></div>
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Country</label><input type="text" id="editPCountry" style="width:100%;"></div>
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Aliases (comma separated)</label><input type="text" id="editPAliases" style="width:100%;"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeEditModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditPortfolio()">💾 Save</button></div>
+  </div>
+</div>
+
+<!-- EDIT CATEGORY MODAL -->
+<div id="editCategoryModal" class="modal-overlay">
+  <div class="modal">
+    <h3>✏️ Edit Query Category</h3>
+    <input type="hidden" id="editCatId">
+    <div class="form-row" style="flex-direction:column;gap:10px;">
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Category Name</label><input type="text" id="editCatName" style="width:100%;"></div>
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Keywords (comma separated)</label><input type="text" id="editCatKeywords" style="width:100%;"></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeEditCategoryModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditCategory()">💾 Save</button></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <span id="footerLeft">System Ready</span>
+  <span id="footerRight">News Intelligence Terminal v2.0.0</span>
+</div>
+
+<script>
+// =========================================================================
+// GLOBAL STATE
+// =========================================================================
+const API = '';
+let currentSort = { key: 'published_time', asc: false };
+let newsData = { items: [], total: 0, page: 1, pages: 1 };
+let portfolioData = [];
+let queryCategoriesData = [];
+let visibilityData = [];
+let appSettings = {};
+let activeTaxonomyCategory = 'All';
+let currentNewsFilterType = 'All';
+let currentPage = 1;
+let debounceTimer = null;
+
+// =========================================================================
+// AUDIO ENGINE
+// =========================================================================
+class AudioEngine {
+  constructor() { this.ctx = null; }
+  init() { if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } }
+  play(type = 'high', cfg = {}) {
+    if (cfg.enable_sound_alerts === false) return;
+    this.init(); if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const vol = parseFloat(cfg.sound_volume || 0.8), now = this.ctx.currentTime;
+    const g = this.ctx.createGain(); g.gain.setValueAtTime(vol * 0.3, now); g.connect(this.ctx.destination);
+    const o = this.ctx.createOscillator();
+    if (type==='critical') { o.type='sawtooth'; o.frequency.setValueAtTime(880,now); o.frequency.setValueAtTime(1046,now+.15); }
+    else { o.type='sine'; o.frequency.setValueAtTime(587,now); o.frequency.exponentialRampToValueAtTime(784,now+.2); }
+    o.connect(g); o.start(now); g.gain.exponentialRampToValueAtTime(0.001,now+.3); o.stop(now+.35);
+  }
+}
+const audio = new AudioEngine();
+
+function toggleAudioAlerts() {
+  appSettings.enable_sound_alerts = !appSettings.enable_sound_alerts;
+  document.getElementById('audioToggleBtn').textContent = appSettings.enable_sound_alerts ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+  if (appSettings.enable_sound_alerts) audio.play('high', appSettings);
+}
+
+// =========================================================================
+// HELPERS
+// =========================================================================
+async function api(path, method='GET', body=null) {
+  const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function sentimentClass(s) { return {'Very Positive':'sentiment-vpos','Positive':'sentiment-pos','Neutral':'sentiment-neu','Negative':'sentiment-neg','Very Negative':'sentiment-vneg'}[s]||'sentiment-neu'; }
+function sentimentBadge(s, id, isUser) {
+  const cls = sentimentClass(s) + (isUser ? ' sentiment-user' : '');
+  return `<span class="sentiment-badge ${cls}" onclick="openSentimentDropdown(event,${id})" title="${isUser?'User-tagged — click to change':'Click to override sentiment'}">${esc(s)}</span>
+  <div class="sentiment-dropdown" id="sentDrop-${id}">
+    <div class="sentiment-dropdown-item" onclick="setSentiment(${id},'Very Positive')">✅ Very Positive</div>
+    <div class="sentiment-dropdown-item" onclick="setSentiment(${id},'Positive')">🟢 Positive</div>
+    <div class="sentiment-dropdown-item" onclick="setSentiment(${id},'Neutral')">⚪ Neutral</div>
+    <div class="sentiment-dropdown-item" onclick="setSentiment(${id},'Negative')">🔴 Negative</div>
+    <div class="sentiment-dropdown-item" onclick="setSentiment(${id},'Very Negative')">🛑 Very Negative</div>
+  </div>`;
+}
+function openSentimentDropdown(e, id) {
+  e.stopPropagation();
+  document.querySelectorAll('.sentiment-dropdown').forEach(d => d.classList.remove('show'));
+  const dd = document.getElementById('sentDrop-'+id);
+  if (dd) dd.classList.toggle('show');
+}
+async function setSentiment(id, sentiment) {
+  await api(`/api/headlines/${id}/sentiment`, 'POST', { sentiment });
+  document.querySelectorAll('.sentiment-dropdown').forEach(d => d.classList.remove('show'));
+  loadNews();
+}
+document.addEventListener('click', () => { document.querySelectorAll('.sentiment-dropdown').forEach(d => d.classList.remove('show')); });
+
+function scoreBar(v) {
+  const color = v >= 85 ? 'var(--accent-green)' : v >= 50 ? 'var(--accent-blue)' : v >= 25 ? 'var(--accent-yellow)' : 'var(--accent-red)';
+  return `<span style="display:inline-flex;align-items:center;gap:6px;"><span class="score-bar" style="width:${v}px;background:${color};"></span><span style="font-weight:700;color:${color};font-family:'JetBrains Mono',monospace;font-size:12px">${v}</span></span>`;
+}
+
+// =========================================================================
+// NAVIGATION & FILTERING
+// =========================================================================
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-'+name)?.classList.add('active');
+  document.getElementById('tabNav-'+name)?.classList.add('active');
+  if (name==='dashboard') loadDashboard();
+  else if (name==='news') { loadFilterDropdowns(); loadNews(); }
+  else if (name==='portfolio') loadPortfolio();
+  else if (name==='queries') { loadQueryCategories(); loadQueryInspector(); }
+  else if (name==='industries') loadIndustries();
+  else if (name==='keywords') loadKeywords();
+  else if (name==='domains') { loadDomains(); loadVisibility(); }
+  else if (name==='settings') loadSettings();
+}
+
+async function jumpToNewsWithFilter(q='', s='All') {
+  await loadFilterDropdowns();
+  showTab('news');
+  document.getElementById('newsFilter').value = q;
+  document.getElementById('sentimentFilter').value = s;
+  currentPage = 1;
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function filterNewsByCompany(c) {
+  await loadFilterDropdowns();
+  showTab('news');
+  clearInputsWithoutReload();
+  const sel = document.getElementById('companyFilter');
+  if (sel) {
+    let optFound = false;
+    for (let opt of sel.options) {
+      if (opt.value.toLowerCase() === c.toLowerCase()) {
+        sel.value = opt.value; optFound = true; break;
+      }
+    }
+    if (!optFound) document.getElementById('newsFilter').value = c;
+  } else {
+    document.getElementById('newsFilter').value = c;
+  }
+  currentPage = 1;
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function filterNewsByIndustry(i) {
+  await loadFilterDropdowns();
+  showTab('news');
+  clearInputsWithoutReload();
+  const sel = document.getElementById('industryFilter');
+  if (sel) {
+    let optFound = false;
+    for (let opt of sel.options) {
+      if (opt.value.toLowerCase() === i.toLowerCase()) {
+        sel.value = opt.value; optFound = true; break;
+      }
+    }
+    if (!optFound) document.getElementById('newsFilter').value = i;
+  } else {
+    document.getElementById('newsFilter').value = i;
+  }
+  currentPage = 1;
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function filterNewsByTag(t) {
+  await loadFilterDropdowns();
+  showTab('news');
+  clearInputsWithoutReload();
+  document.getElementById('newsFilter').value = t;
+  currentPage = 1;
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function filterNewsBySentiment(s) {
+  await loadFilterDropdowns();
+  showTab('news');
+  clearInputsWithoutReload();
+  document.getElementById('sentimentFilter').value = s;
+  currentPage = 1;
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearInputsWithoutReload() {
+  document.getElementById('newsFilter').value = '';
+  document.getElementById('sentimentFilter').value = 'All';
+  document.getElementById('industryFilter').value = 'All';
+  document.getElementById('companyFilter').value = 'All';
+  document.getElementById('domainFilter').value = 'All';
+  document.getElementById('recencyFilter').value = 'All';
+  document.getElementById('dateFrom').value = '';
+  document.getElementById('dateTo').value = '';
+  currentNewsFilterType = 'All';
+  document.querySelectorAll('.nav-filter-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btnFilterAll')?.classList.add('active');
+}
+
+function clearAllFilters() {
+  clearInputsWithoutReload();
+  currentPage = 1;
+  loadNews();
+}
+
+// =========================================================================
+// DASHBOARD
+// =========================================================================
+async function loadDashboard() {
+  const [d, daily, sentiments, tags] = await Promise.all([
+    api('/api/dashboard'), api('/api/dashboard/daily'), api('/api/dashboard/company_sentiments'), api('/api/dashboard/tag_summary')
+  ]);
+  // Metrics Cards with CTAs
+  document.getElementById('metricsCards').innerHTML = `
+    <div class="card" onclick="jumpToNewsWithFilter('')">
+      <div>
+        <div class="card-label">Headlines Today</div>
+        <div class="card-value cyan">${d.total}</div>
+      </div>
+      <div class="card-cta">View Terminal ➔</div>
+    </div>
+    <div class="card" onclick="setNewsFilterType('live')">
+      <div>
+        <div class="card-label">🔴 Live Unread</div>
+        <div class="card-value red">${d.unread||0}</div>
+      </div>
+      <div class="card-cta">Review Unread ➔</div>
+    </div>
+    <div class="card" onclick="setNewsFilterType('starred')">
+      <div>
+        <div class="card-label">⭐ Starred</div>
+        <div class="card-value yellow">${d.starred||0}</div>
+      </div>
+      <div class="card-cta">View Starred ➔</div>
+    </div>
+    <div class="card" onclick="setNewsFilterType('high_relevance')">
+      <div>
+        <div class="card-label">High Priority</div>
+        <div class="card-value purple">${d.high}</div>
+      </div>
+      <div class="card-cta">Filter Score ≥85 ➔</div>
+    </div>
+    <div class="card" onclick="filterNewsBySentiment('Positive')">
+      <div>
+        <div class="card-label">Positive Sentiment</div>
+        <div class="card-value green">${d.positive}</div>
+      </div>
+      <div class="card-cta">Filter Positive ➔</div>
+    </div>
+    <div class="card" onclick="filterNewsBySentiment('Negative')">
+      <div>
+        <div class="card-label">Negative Sentiment</div>
+        <div class="card-value red">${d.negative}</div>
+      </div>
+      <div class="card-cta">Filter Negative ➔</div>
+    </div>`;
+
+  // Daily Top News
+  const dng = document.getElementById('dailyNewsGrid');
+  dng.innerHTML = daily.length ? daily.map(n => `
+    <div class="news-card" onclick="window.open('${esc(n.url)}','_blank')">
+      <div class="news-card-header"><div class="news-card-title">${esc(n.headline)}</div></div>
+      <div class="news-card-meta">
+        <span class="news-card-tag">${esc(n.company)}</span>
+        <span class="sentiment-badge ${sentimentClass(n.sentiment)}" style="font-size:9px">${esc(n.sentiment)}</span>
+        <span class="news-card-source">${esc(n.source)} · ${esc(n.published_time||'')}</span>
+        <span class="news-card-score" style="color:${n.relevance_score>=85?'var(--accent-green)':'var(--accent-blue)'}; margin-left:auto">${n.relevance_score}</span>
+      </div>
+    </div>`).join('') : '<div class="empty-state">No news today yet. Click "Trigger Search" to discover headlines!</div>';
+
+  // Company Sentiments
+  const sg = document.getElementById('companySentimentGrid');
+  sg.innerHTML = sentiments.length ? sentiments.map(s => {
+    const total = s.positive+s.negative+s.neutral || 1;
+    const pW = (s.positive/total*100).toFixed(0), nW = (s.negative/total*100).toFixed(0), uW = (s.neutral/total*100).toFixed(0);
+    const arrow = s.latest_sentiment.includes('Positive') ? '↑' : s.latest_sentiment.includes('Negative') ? '↓' : '→';
+    const arrowColor = s.latest_sentiment.includes('Positive') ? 'var(--accent-green)' : s.latest_sentiment.includes('Negative') ? 'var(--accent-red)' : 'var(--text-muted)';
+    return `<div class="sentiment-card" onclick="filterNewsByCompany('${esc(s.company)}')">
+      <div class="sentiment-card-name">${esc(s.company)} <span style="color:${arrowColor};font-size:18px;margin-left:6px">${arrow}</span></div>
+      <div class="sentiment-bar-row"><div class="bar-pos" style="flex:${pW}"></div><div class="bar-neu" style="flex:${uW}"></div><div class="bar-neg" style="flex:${nW}"></div></div>
+      <div class="sentiment-card-stats">
+        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--accent-green)"></span>${s.positive} pos</span>
+        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--text-muted)"></span>${s.neutral} neu</span>
+        <span class="sentiment-stat"><span class="sentiment-dot" style="background:var(--accent-red)"></span>${s.negative} neg</span>
+        <span style="margin-left:auto;font-family:'JetBrains Mono',monospace;color:var(--accent-blue)">${s.total} total</span>
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty-state">No company sentiment data yet</div>';
+
+  // Tag Categories
+  const tg = document.getElementById('dashboardTagGrid');
+  tg.innerHTML = tags.length ? tags.map(t => `<div class="tag-pill" onclick="filterNewsByTag('${esc(t.tag)}')">${esc(t.tag)} <span class="tag-count">${t.count}</span></div>`).join('') : '<div class="empty-state">No event tags yet</div>';
+
+  // Trending
+  document.getElementById('trendingCompanies').innerHTML = d.trending_companies.length ? d.trending_companies.map(c => `<div class="trend-item" onclick="filterNewsByCompany('${esc(c.company)}')"><span>🏢 <strong>${esc(c.company)}</strong></span><span class="trend-count">${c.count} ➔</span></div>`).join('') : '<div class="empty-state">No data yet</div>';
+  document.getElementById('trendingIndustries').innerHTML = d.trending_industries.length ? d.trending_industries.map(i => `<div class="trend-item" onclick="filterNewsByIndustry('${esc(i.industry)}')"><span>🏭 <strong>${esc(i.industry)}</strong></span><span class="trend-count">${i.count} ➔</span></div>`).join('') : '<div class="empty-state">No data yet</div>';
+  document.getElementById('footerLeft').textContent = `Last Refresh: ${d.last_refresh} | DB Connected`;
+  loadTaxonomyKeywords();
+}
+
+// Taxonomy
+async function loadTaxonomyKeywords() {
+  const tags = await api(`/api/taxonomy/keywords?category=${encodeURIComponent(activeTaxonomyCategory)}`);
+  const cloud = document.getElementById('dashboardTagCloud');
+  cloud.innerHTML = tags.length ? tags.map(t => `<div class="tag-item" onclick="filterNewsByTag('${esc(t.word)}')">#${esc(t.word)} <span class="tag-badge">${t.frequency}</span></div>`).join('') : '<div class="empty-state" style="padding:10px;">No keywords for this theme yet</div>';
+}
+function loadTaxonomyCategory(cat) {
+  activeTaxonomyCategory = cat;
+  document.querySelectorAll('.tax-pill').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  loadTaxonomyKeywords();
+}
+
+// =========================================================================
+// NEWS TERMINAL (Paginated)
+// =========================================================================
+async function loadFilterDropdowns() {
+  const [companies, industries, domains] = await Promise.all([
+    api('/api/filters/companies'), api('/api/filters/industries'), api('/api/filters/domains')
+  ]);
+  const cs = document.getElementById('companyFilter'); cs.innerHTML = '<option value="All">All Companies</option>' + companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  const is = document.getElementById('industryFilter'); is.innerHTML = '<option value="All">All Industries</option>' + industries.map(i => `<option value="${esc(i)}">${esc(i)}</option>`).join('');
+  const ds = document.getElementById('domainFilter'); ds.innerHTML = '<option value="All">All Domains</option>' + domains.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+}
+
+function debounceLoadNews() { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { currentPage = 1; loadNews(); }, 300); }
+
+async function loadNews(page) {
+  if (page !== undefined) currentPage = page;
+  const q = document.getElementById('newsFilter').value;
+  const s = document.getElementById('sentimentFilter').value;
+  const r = document.getElementById('recencyFilter').value;
+  const ind = document.getElementById('industryFilter').value;
+  const comp = document.getElementById('companyFilter').value;
+  const dom = document.getElementById('domainFilter').value;
+  const df = document.getElementById('dateFrom').value;
+  const dt = document.getElementById('dateTo').value;
+  const params = new URLSearchParams({
+    page: currentPage, page_size: 50, q, sentiment: s, recency: r,
+    industry: ind, company: comp, domain: dom,
+    date_from: df, date_to: dt, filter_type: currentNewsFilterType
+  });
+  newsData = await api('/api/headlines?' + params);
+  renderNews();
+}
+
+function sortNews(key) {
+  if (currentSort.key === key) currentSort.asc = !currentSort.asc;
+  else { currentSort.key = key; currentSort.asc = false; }
+  renderNews();
+}
+
+function setNewsFilterType(type) {
+  showTab('news');
+  currentNewsFilterType = type; currentPage = 1;
+  document.querySelectorAll('.nav-filter-btn').forEach(b => b.classList.remove('active'));
+  const map = {'All':'btnFilterAll','live':'btnFilterLive','starred':'btnFilterStarred','high_relevance':'btnFilterHigh'};
+  if (map[type]) document.getElementById(map[type])?.classList.add('active');
+  loadNews();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function creditRiskBadge(risk, signal, itemJson) {
+  let bg = 'rgba(100,116,139,0.15)', color = '#94a3b8', border = '#475569', icon = '⚪';
+  if (risk === 'HIGH') {
+    bg = 'rgba(239,68,68,0.15)'; color = '#f87171'; border = '#ef4444'; icon = '🔴';
+  } else if (risk === 'MEDIUM') {
+    bg = 'rgba(245,158,11,0.15)'; color = '#fbbf24'; border = '#f59e0b'; icon = '🟠';
+  } else if (risk === 'LOW') {
+    bg = 'rgba(59,130,246,0.15)'; color = '#60a5fa'; border = '#3b82f6'; icon = '🟡';
+  } else if (risk === 'FAVORABLE') {
+    bg = 'rgba(16,185,129,0.15)'; color = '#34d399'; border = '#10b981'; icon = '🟢';
+  }
+  return `<span class="credit-badge" onclick="openCreditModal('${itemJson}')" style="background:${bg};color:${color};border:1px solid ${border};padding:3px 9px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.3px;white-space:nowrap;cursor:pointer;" title="Click for Multi-Dimensional Credit Risk Analysis">${icon} ${esc(risk||'NEUTRAL')}</span>`;
+}
+
+function renderNews() {
+  const items = [...(newsData.items || [])].sort((a, b) => {
+    let va = a[currentSort.key]||'', vb = b[currentSort.key]||'';
+    if (typeof va === 'number') return currentSort.asc ? va-vb : vb-va;
+    return currentSort.asc ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  const body = document.getElementById('newsBody');
+  body.innerHTML = items.length ? items.map(r => {
+    const isStarred = r.is_starred === 1, isReviewed = r.review_status === 1;
+    const isUserSentiment = !!r.user_sentiment;
+    const rowClass = `${r.relevance_score >= 85 ? 'high-relevance' : ''} ${isReviewed ? 'reviewed-dimmed' : ''}`;
+    const itemJson = esc(JSON.stringify(r).replace(/'/g, "&#39;"));
+    return `<tr class="${rowClass}" onmouseenter="onHover(${r.id})" onmouseleave="onLeave(${r.id})">
+      <td><span class="star-btn ${isStarred?'starred':''}" onclick="toggleStar(${r.id})">${isStarred?'⭐':'✰'}</span></td>
+      <td style="white-space:nowrap;font-size:11px;font-weight:600;color:var(--accent-blue);font-family:'JetBrains Mono',monospace">${esc(r.published_time||'')}${isReviewed?'<br><span class="reviewed-tag">reviewed</span>':''}</td>
+      <td><a class="headline-link" href="#" onclick="openArticle(${r.id},'${esc(r.url)}');return false;">${esc(r.headline)}</a></td>
+      <td style="font-weight:600"><a href="#" onclick="filterNewsByCompany('${esc(r.company)}');return false;" style="color:var(--text-primary);text-decoration:none;">${esc(r.company)}</a></td>
+      <td style="font-size:12px;color:var(--text-secondary)">${esc(r.industry)}</td>
+      <td style="font-size:11px">${esc(r.source)}</td>
+      <td style="position:relative">${sentimentBadge(r.sentiment, r.id, isUserSentiment)}</td>
+      <td>${creditRiskBadge(r.credit_risk, r.key_risk_signal, itemJson)}</td>
+      <td style="font-size:11px;font-weight:600;color:var(--text-primary)">${esc(r.key_risk_signal||'Routine News')}</td>
+      <td>${scoreBar(r.relevance_score)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="10" class="empty-state">No headlines found. Adjust filters or trigger a search.</td></tr>';
+
+  // Pagination
+  const pc = document.getElementById('paginationControls');
+  if (newsData.pages > 1) {
+    let btns = `<button class="page-btn" onclick="loadNews(${Math.max(1,newsData.page-1)})" ${newsData.page<=1?'disabled':''}>◀ Prev</button>`;
+    const start = Math.max(1, newsData.page - 3), end = Math.min(newsData.pages, newsData.page + 3);
+    if (start > 1) btns += `<button class="page-btn" onclick="loadNews(1)">1</button><span class="page-info">…</span>`;
+    for (let i = start; i <= end; i++) btns += `<button class="page-btn ${i===newsData.page?'active':''}" onclick="loadNews(${i})">${i}</button>`;
+    if (end < newsData.pages) btns += `<span class="page-info">…</span><button class="page-btn" onclick="loadNews(${newsData.pages})">${newsData.pages}</button>`;
+    btns += `<button class="page-btn" onclick="loadNews(${Math.min(newsData.pages,newsData.page+1)})" ${newsData.page>=newsData.pages?'disabled':''}>Next ▶</button>`;
+    btns += `<span class="page-info">${newsData.total} results</span>`;
+    pc.innerHTML = btns;
+  } else { pc.innerHTML = newsData.total ? `<span class="page-info">${newsData.total} results</span>` : ''; }
+}
+
+// Hover review
+const hoverTimers = {};
+function onHover(id) { if (hoverTimers[id] || document.hidden) return; let el=0; hoverTimers[id]=setInterval(async()=>{if(!document.hidden){el++;if(el>=15){clearInterval(hoverTimers[id]);delete hoverTimers[id];await api(`/api/headlines/${id}/review`,'POST');loadNews();}}},1000); }
+function onLeave(id) { if(hoverTimers[id]){clearInterval(hoverTimers[id]);delete hoverTimers[id];} }
+async function openArticle(id,url) { await api(`/api/headlines/${id}/review`,'POST'); window.open(url,'_blank'); loadNews(); }
+async function toggleStar(id) { await api(`/api/headlines/${id}/star`,'POST'); loadNews(); }
+async function markAllReviewed() { await api('/api/headlines/review_all','POST'); loadNews(); loadDashboard(); }
+async function confirmResetAllNews() { if(confirm("Clear ALL headlines? This cannot be undone.")){ await api('/api/headlines/clear','POST'); loadDashboard(); loadNews(); } }
+
+// =========================================================================
+// PORTFOLIO
+// =========================================================================
+async function loadPortfolio() {
+  portfolioData = await api('/api/portfolio');
+  document.getElementById('portfolioBody').innerHTML = portfolioData.map(r => `<tr>
+    <td><strong>${esc(r.company)}</strong></td><td>${esc(r.ticker||'')}</td><td>${esc(r.industry||'')}</td><td>${esc(r.country||'')}</td>
+    <td style="font-size:11px">${(r.aliases||[]).map(a=>esc(a)).join(', ')}</td>
+    <td><span class="toggle-btn" onclick="togglePortfolio(${r.id},${r.enabled?0:1})">${r.enabled?'✅':'⬜'}</span></td>
+    <td><span class="edit-btn" onclick="openEditModal(${r.id})">✏️ Edit</span><span class="delete-btn" onclick="deletePortfolio(${r.id})">Delete</span></td>
+  </tr>`).join('');
+}
+function openEditModal(id) { const i=portfolioData.find(p=>p.id===id); if(!i)return; document.getElementById('editPId').value=i.id; document.getElementById('editPCompany').value=i.company; document.getElementById('editPTicker').value=i.ticker||''; document.getElementById('editPIndustry').value=i.industry||''; document.getElementById('editPCountry').value=i.country||'USA'; document.getElementById('editPAliases').value=(i.aliases||[]).join(', '); document.getElementById('editPortfolioModal').style.display='flex'; }
+function closeEditModal() { document.getElementById('editPortfolioModal').style.display='none'; }
+async function saveEditPortfolio() { const id=parseInt(document.getElementById('editPId').value); await api(`/api/portfolio/${id}/update`,'POST',{company:document.getElementById('editPCompany').value.trim(),ticker:document.getElementById('editPTicker').value.trim(),industry:document.getElementById('editPIndustry').value.trim(),country:document.getElementById('editPCountry').value.trim(),aliases:document.getElementById('editPAliases').value.split(',').map(s=>s.trim()).filter(Boolean)}); closeEditModal(); loadPortfolio(); }
+async function addPortfolio() { const c=document.getElementById('pCompany').value.trim(); if(!c)return; await api('/api/portfolio','POST',{company:c,ticker:document.getElementById('pTicker').value.trim(),industry:document.getElementById('pIndustry').value.trim(),country:document.getElementById('pCountry').value.trim(),aliases:document.getElementById('pAliases').value.split(',').map(s=>s.trim()).filter(Boolean)}); ['pCompany','pTicker','pIndustry','pAliases'].forEach(id=>document.getElementById(id).value=''); loadPortfolio(); }
+async function deletePortfolio(id) { await api(`/api/portfolio/${id}`,'DELETE'); loadPortfolio(); }
+async function togglePortfolio(id,v) { await api(`/api/portfolio/${id}/toggle`,'POST',{enabled:v}); loadPortfolio(); loadIndustries(); loadQueryInspector(); }
+async function bulkTogglePortfolio(enabled) { await api('/api/portfolio/bulk_toggle','POST',{enabled:enabled}); loadPortfolio(); loadIndustries(); loadQueryInspector(); }
+async function bulkToggleDomains(enabled) { await api('/api/domains/bulk_toggle','POST',{enabled:enabled}); loadDomains(); }
+async function bulkToggleVisibility(visible) { await api('/api/visibility/bulk_toggle','POST',{visible:visible}); loadVisibility(); }
+
+// =========================================================================
+// QUERY CATEGORIES & INSPECTOR
+// =========================================================================
+async function loadQueryCategories() {
+  queryCategoriesData = await api('/api/query_categories');
+  document.getElementById('queryCategoriesBody').innerHTML = queryCategoriesData.map(r => `<tr>
+    <td><strong>${esc(r.name)}</strong></td><td style="font-size:11px">${(r.keywords||[]).join(', ')}</td>
+    <td><span class="toggle-btn" onclick="toggleQC(${r.id},${r.enabled?0:1})">${r.enabled?'✅ Active':'⬜'}</span></td>
+    <td><span class="edit-btn" onclick="openEditCatModal(${r.id})">✏️ Edit</span><span class="delete-btn" onclick="deleteQC(${r.id})">Delete</span></td>
+  </tr>`).join('');
+}
+function openEditCatModal(id) { const c=queryCategoriesData.find(x=>x.id===id); if(!c)return; document.getElementById('editCatId').value=c.id; document.getElementById('editCatName').value=c.name; document.getElementById('editCatKeywords').value=(c.keywords||[]).join(', '); document.getElementById('editCategoryModal').style.display='flex'; }
+function closeEditCategoryModal() { document.getElementById('editCategoryModal').style.display='none'; }
+async function saveEditCategory() { const id=parseInt(document.getElementById('editCatId').value),name=document.getElementById('editCatName').value.trim(),kws=document.getElementById('editCatKeywords').value.split(',').map(s=>s.trim()).filter(Boolean); if(!name||!kws.length)return; await api(`/api/query_categories/${id}/update`,'POST',{name,keywords:kws}); closeEditCategoryModal(); loadQueryCategories(); loadQueryInspector(); }
+async function addQueryCategory() { const n=document.getElementById('catName').value.trim(),kws=document.getElementById('catKeywords').value.split(',').map(s=>s.trim()).filter(Boolean); if(!n||!kws.length)return; await api('/api/query_categories','POST',{name:n,keywords:kws}); document.getElementById('catName').value=''; document.getElementById('catKeywords').value=''; loadQueryCategories(); loadQueryInspector(); }
+async function deleteQC(id) { await api(`/api/query_categories/${id}`,'DELETE'); loadQueryCategories(); loadQueryInspector(); }
+async function toggleQC(id,v) { await api(`/api/query_categories/${id}/toggle`,'POST',{enabled:v}); loadQueryCategories(); loadQueryInspector(); }
+
+async function loadQueryInspector() {
+  const rows = await api('/api/queries');
+  const c = document.getElementById('queryInspectorContainer');
+  if(!rows.length){c.innerHTML='<div class="empty-state">No portfolio companies configured.</div>';return;}
+
+  const PROVIDER_META = {
+    google_news:    {icon:'🔵', label:'Google News RSS',    color:'var(--accent-blue)',    key:'google'},
+    google_finance: {icon:'🟢', label:'Google Finance RSS', color:'var(--accent-green)',   key:'google_finance'},
+    bing:           {icon:'🟠', label:'Bing News RSS',      color:'#f5a623',               key:'bing'},
+    ddg:            {icon:'🟣', label:'DuckDuckGo HTML',    color:'var(--accent-purple)',  key:'ddg'},
+  };
+
+  function copyToClipboard(txt) {
+    navigator.clipboard.writeText(txt).catch(()=>{});
+  }
+  function qCard(provKey, queryStr, testLabel, extraRows='') {
+    const meta = PROVIDER_META[provKey] || {icon:'⚪',label:provKey,color:'var(--text-secondary)',key:provKey};
+    const safeQ = esc(queryStr);
+    const encoded = queryStr.replace(/'/g, "\\'");
+    return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid ${meta.color};border-radius:var(--radius-xs);padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:700;color:${meta.color};">${meta.icon} ${meta.label}</span>
+        <div style="display:flex;gap:6px;">
+          <button onclick="copyToClipboard('${encoded}')" style="font-size:10px;padding:3px 8px;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
+          <button onclick="testProviderQuery('${meta.key}','${encoded}')" style="font-size:10px;padding:3px 8px;border:1px solid ${meta.color};border-radius:4px;background:transparent;color:${meta.color};cursor:pointer;">▶ Test</button>
+        </div>
+      </div>
+      <div class="code-block" style="font-size:11px;color:var(--text-primary);word-break:break-all;">${safeQ}</div>
+      ${extraRows}
+    </div>`;
+  }
+
+  let html = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <span style="font-size:13px;color:var(--text-secondary);">📡 Live query preview for <strong>${rows.length}</strong> portfolio companies — click <strong>▶ Test</strong> on any query card to see live results</span>
+  </div>`;
+
+  rows.forEach((r, idx) => {
+    const pq = r.provider_queries || {};
+    const gn = pq.google_news || {};
+    const gf = pq.google_finance || {};
+    const bn = pq.bing || {};
+    const dg = pq.ddg || {};
+    const aliases = (r.aliases||[]).map(a=>`<code style="background:var(--bg-tertiary,#1a2235);padding:1px 6px;border-radius:3px;font-size:10px;">${esc(a)}</code>`).join(' ');
+
+    // Category sweep cards formatted matching Snapshot 1
+    const catCards = (r.category_queries||[]).map(cq=>{
+      const safeQ = esc(cq.query||'');
+      const encoded = (cq.query||'').replace(/'/g, "\\'");
+      return `<div style="background:var(--bg-secondary);border:1px solid var(--border);border-left:3px solid var(--accent-blue);border-radius:var(--radius-xs);padding:10px 14px;margin-bottom:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;font-weight:700;color:var(--accent-blue);">📁 Categorized Sweep Query: ${esc(cq.category_name)}</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="copyToClipboard('${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--border);border-radius:3px;background:transparent;color:var(--text-secondary);cursor:pointer;">📋 Copy</button>
+            <button onclick="testProviderQuery('google','${encoded}')" style="font-size:10px;padding:2px 7px;border:1px solid var(--accent-blue);border-radius:3px;background:transparent;color:var(--accent-blue);cursor:pointer;">▶ Test</button>
+          </div>
+        </div>
+        <div class="code-block" style="font-size:11px;color:var(--accent-blue);word-break:break-all;font-family:var(--font-mono);">${safeQ}</div>
+      </div>`;
+    }).join('');
+
+    html += `<div class="category-group-card" style="margin-bottom:24px;">
+      <div class="category-group-title">
+        <span>🏢 ${esc(r.company)} ${r.ticker?`<span style="font-size:11px;color:var(--accent-yellow);font-weight:500;">(${esc(r.ticker)})</span>`:''}
+          <span style="font-size:10px;color:var(--text-muted);font-weight:normal;margin-left:8px;">Aliases: ${aliases||'none'}</span>
+        </span>
+        <span style="font-size:11px;font-weight:normal;color:var(--text-muted);">${(r.category_queries||[]).length} active categorized sweeps</span>
+      </div>
+
+      <!-- Broad Queries per provider -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">🔍 Broad Search Queries</div>
+        ${qCard('google_news', gn.broad||r.broad_query||'')}
+        ${r.ticker ? qCard('google_finance', gf.finance_rss_url||'', 'Google Finance RSS',
+          `<div style="margin-top:4px;font-size:10px;color:var(--text-muted);">News query: <code style="font-family:var(--font-mono);">${esc(gf.news_rss_query||'')}</code></div>`) : ''}
+        ${qCard('bing', bn.broad||'')}
+        ${qCard('ddg', dg.broad||'')}
+      </div>
+
+      <!-- Categorized Sweep Queries (Snapshot 1 style) -->
+      <div style="margin-top:14px;">
+        <div style="font-size:11px;font-weight:700;color:var(--accent-green);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📁 Categorized Sweep Queries (${(r.category_queries||[]).length})</div>
+        ${catCards}
+      </div>
+    </div>`;
+  });
+
+  html += `<div id="queryTestResultsInspector" style="margin-top:20px;"></div>`;
+  c.innerHTML = html;
+}
+
+async function testProviderQuery(provider, query) {
+  const rd = document.getElementById('queryTestResultsInspector') || document.getElementById('testQueryResults');
+  if(rd) rd.innerHTML = `<div style="font-size:12px;color:var(--accent-yellow);padding:10px 0;">⏳ Testing on ${provider}...</div>`;
+  // Also fill the main tester input
+  const inp = document.getElementById('testQueryInput');
+  const sel = document.getElementById('testQueryProvider');
+  if(inp) inp.value = query;
+  if(sel) sel.value = provider;
+  // Scroll to tester
+  document.getElementById('testQueryResults').scrollIntoView({behavior:'smooth'});
+  const res = await api('/api/queries/test_provider', 'POST', {provider, query});
+  const target = document.getElementById('testQueryResults');
+  renderTestResults(target, res.items||[], provider);
+}
+
+async function runTestQuery() {
+  const q = document.getElementById('testQueryInput').value.trim();
+  const provider = document.getElementById('testQueryProvider')?.value || 'google';
+  if(!q) return;
+  const rd = document.getElementById('testQueryResults');
+  rd.innerHTML = `<div style="font-size:12px;color:var(--accent-yellow);padding:8px 0;">⏳ Testing "${q}" on ${provider}...</div>`;
+  const res = await api('/api/queries/test_provider', 'POST', {provider, query: q});
+  renderTestResults(rd, res.items||[], provider);
+}
+
+function renderTestResults(container, items, provider) {
+  const PCOL = {google:'var(--accent-blue)',google_finance:'var(--accent-green)',bing:'#f5a623',ddg:'var(--accent-purple)'};
+  const col = PCOL[provider]||'var(--accent-green)';
+  if(!items.length) {
+    container.innerHTML = `<div style="font-size:12px;color:var(--accent-red);padding:8px 0;">⚠️ 0 results — query returned nothing from ${provider}</div>`;
+    return;
+  }
+  container.innerHTML = `<div style="font-size:12px;color:${col};margin-bottom:8px;">✅ ${items.length} results from <strong>${provider}</strong></div>
+    <div class="table-wrap"><table><thead><tr><th>Title</th><th>Source</th><th>Date</th></tr></thead><tbody>
+    ${items.map(it=>`<tr><td><a class="headline-link" href="${esc(it.link)}" target="_blank">${esc(it.title)}</a></td><td style="font-size:11px;">${esc(it.source||provider)}</td><td style="font-size:11px;">${esc(it.pubDate||'')}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+
+// =========================================================================
+// INDUSTRIES, KEYWORDS, DOMAINS, VISIBILITY
+// =========================================================================
+async function loadIndustries() {
+  const rows = await api('/api/industries');
+  document.getElementById('industryBody').innerHTML = rows.length ? rows.map(r => `<tr>
+    <td><strong>${esc(r.name)}</strong></td>
+    <td><span class="tag-badge" style="font-size:12px;padding:3px 10px">${r.company_count} compan${r.company_count>1?'ies':'y'}</span></td>
+    <td>
+      <span class="edit-btn" onclick="filterNewsByIndustry('${esc(r.name)}')">📰 Filter News ➔</span>
+      <span class="edit-btn" onclick="showTab('portfolio')" style="color:var(--text-muted);margin-left:12px">🏢 View in Portfolio</span>
+    </td>
+  </tr>`).join('') : '<tr><td colspan="3" class="empty-state">No industries found in Portfolio tab. Add companies to portfolio with industries to see them here!</td></tr>';
+}
+
+async function loadKeywords() { const rows=await api('/api/keywords'); document.getElementById('keywordBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.word)}</td><td style="font-size:11px">${esc(r.category)}</td><td><span class="toggle-btn" onclick="toggleKW(${r.id},${r.enabled?0:1})">${r.enabled?'✅':'⬜'}</span></td><td><span class="delete-btn" onclick="deleteKW(${r.id})">Delete</span></td></tr>`).join(''); }
+async function addKeyword() { const v=document.getElementById('kwWord').value.trim(); if(!v)return; await api('/api/keywords','POST',{word:v}); document.getElementById('kwWord').value=''; loadKeywords(); }
+async function deleteKW(id) { await api(`/api/keywords/${id}`,'DELETE'); loadKeywords(); }
+async function toggleKW(id,v) { await api(`/api/keywords/${id}/toggle`,'POST',{enabled:v}); loadKeywords(); }
+
+async function loadDomains() { const rows=await api('/api/domains'); document.getElementById('domainBody').innerHTML=rows.map(r=>`<tr><td>${esc(r.domain)}</td><td><span class="toggle-btn" onclick="toggleDom(${r.id},${r.enabled?0:1})">${r.enabled?'✅':'⬜'}</span></td><td><span class="delete-btn" onclick="deleteDom(${r.id})">Delete</span></td></tr>`).join(''); }
+async function addDomain() { const v=document.getElementById('domName').value.trim(); if(!v)return; await api('/api/domains','POST',{domain:v}); document.getElementById('domName').value=''; loadDomains(); }
+async function deleteDom(id) { await api(`/api/domains/${id}`,'DELETE'); loadDomains(); }
+async function toggleDom(id,v) { await api(`/api/domains/${id}/toggle`,'POST',{enabled:v}); loadDomains(); }
+
+async function loadVisibility() { visibilityData=await api('/api/visibility'); renderVisibilityTable(); }
+function renderVisibilityTable() { const f=(document.getElementById('visFilter')?.value||'').toLowerCase(); const rows=visibilityData.filter(r=>r.domain.toLowerCase().includes(f)); document.getElementById('visibilityBody').innerHTML=rows.length?rows.map(r=>`<tr><td>${esc(r.domain)}</td><td><span class="toggle-btn" onclick="toggleVis(${r.id},${r.visible?0:1})">${r.visible?'☑️ Visible':'⬜ Hidden'}</span></td><td><span class="delete-btn" onclick="deleteVis(${r.id})">Remove</span></td></tr>`).join(''):'<tr><td colspan="3" class="empty-state">No match</td></tr>'; }
+async function addVisibilityDomain() { const v=document.getElementById('visNewDomain').value.trim(); if(!v)return; await api('/api/visibility/add','POST',{domain:v,visible:0}); document.getElementById('visNewDomain').value=''; loadVisibility(); }
+async function deleteVis(id) { await api(`/api/visibility/${id}`,'DELETE'); loadVisibility(); }
+async function toggleVis(id,v) { await api(`/api/visibility/${id}/toggle`,'POST',{visible:v}); loadVisibility(); }
+
+function onTerminalRecencyChange() {
+  const v = document.getElementById('recencyFilter').value;
+  const grp = document.getElementById('terminalCustomDateGroup');
+  if(grp) grp.style.display = (v === 'custom') ? 'block' : 'none';
+  loadNews();
+}
+
+function toggleCustomSettingsDateRange() {
+  const v = document.getElementById('setRecencyWindow').value;
+  const row = document.getElementById('setCustomDateRow');
+  if(row) row.style.display = (v === 'custom') ? 'flex' : 'none';
+}
+
+async function loadSettings() {
+  appSettings = await api('/api/settings');
+  document.getElementById('setRecencyWindow').value = appSettings.recency_window || '7d';
+  document.getElementById('setCustomStartDate').value = appSettings.custom_start_date || '';
+  document.getElementById('setCustomEndDate').value = appSettings.custom_end_date || '';
+  toggleCustomSettingsDateRange();
+  document.getElementById('setRefresh').value = appSettings.refresh_interval_minutes || 2;
+  document.getElementById('setMinIngest').value = appSettings.min_relevance_ingest || 40;
+  document.getElementById('setMinRelevance').value = appSettings.min_relevance_notification || 85;
+  document.getElementById('setStagger').value = appSettings.stagger_delay_seconds || 1.5;
+  document.getElementById('setWorkers').value = appSettings.max_workers || 4;
+  document.getElementById('setDomainFilter').value = appSettings.domain_filter_enabled ? '1' : '0';
+  document.getElementById('setGoogle').value = appSettings.google_enabled !== false ? '1' : '0';
+  document.getElementById('setBing').value = appSettings.bing_enabled !== false ? '1' : '0';
+  document.getElementById('setDDG').value = appSettings.duckduckgo_enabled !== false ? '1' : '0';
+  document.getElementById('setGDELT').value = appSettings.gdelt_enabled !== false ? '1' : '0';
+  document.getElementById('setEnableSound').value = appSettings.enable_sound_alerts ? '1' : '0';
+  document.getElementById('setSoundVolume').value = appSettings.sound_volume !== undefined ? appSettings.sound_volume : 0.8;
+  document.getElementById('setQuietHours').value = appSettings.quiet_hours_enabled ? '1' : '0';
+  document.getElementById('setQuietStart').value = appSettings.quiet_hours_start || '22:00';
+  document.getElementById('setQuietEnd').value = appSettings.quiet_hours_end || '07:00';
+  document.getElementById('audioToggleBtn').textContent = appSettings.enable_sound_alerts ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+}
+async function saveSettings() {
+  appSettings = {
+    recency_window: document.getElementById('setRecencyWindow').value,
+    custom_start_date: document.getElementById('setCustomStartDate').value,
+    custom_end_date: document.getElementById('setCustomEndDate').value,
+    refresh_interval_minutes: parseInt(document.getElementById('setRefresh').value),
+    min_relevance_ingest: parseFloat(document.getElementById('setMinIngest').value),
+    min_relevance_notification: parseInt(document.getElementById('setMinRelevance').value),
+    stagger_delay_seconds: parseFloat(document.getElementById('setStagger').value),
+    max_workers: parseInt(document.getElementById('setWorkers').value),
+    domain_filter_enabled: document.getElementById('setDomainFilter').value === '1',
+    google_enabled: document.getElementById('setGoogle').value === '1',
+    bing_enabled: document.getElementById('setBing').value === '1',
+    duckduckgo_enabled: document.getElementById('setDDG').value === '1',
+    gdelt_enabled: document.getElementById('setGDELT').value === '1',
+    enable_sound_alerts: document.getElementById('setEnableSound').value === '1',
+    sound_volume: parseFloat(document.getElementById('setSoundVolume').value),
+    quiet_hours_enabled: document.getElementById('setQuietHours').value === '1',
+    quiet_hours_start: document.getElementById('setQuietStart').value,
+    quiet_hours_end: document.getElementById('setQuietEnd').value,
+  };
+  await api('/api/settings', 'POST', appSettings);
+  alert('Settings saved!');
+}
+
+// =========================================================================
+// REFRESH & AUTO-POLL
+// =========================================================================
+async function triggerRefresh() {
+  document.getElementById('statusBadge').className = 'status-badge running';
+  document.getElementById('statusBadge').textContent = 'Searching...';
+  await api('/api/refresh', 'POST');
+  pollStatus();
+}
+async function pollStatus() {
+  const s = await api('/api/status');
+  if (s.running) {
+    document.getElementById('statusBadge').className = 'status-badge running';
+    document.getElementById('statusBadge').textContent = 'Searching...';
+    setTimeout(pollStatus, 3000);
+  } else {
+    document.getElementById('statusBadge').className = 'status-badge';
+    document.getElementById('statusBadge').textContent = 'Idle';
+    loadNews();
+    loadDashboard();
+  }
+}
+
+// Credit Risk Detail Modal Handler
+function openCreditModal(jsonStr) {
+  try {
+    const item = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    const matrix = item.credit_risk_matrix || {};
+    
+    document.getElementById('cmHeadline').textContent = item.headline || '';
+    document.getElementById('cmCompany').textContent = (item.company || 'General') + ' | ' + (item.source || '');
+    document.getElementById('cmRiskPill').textContent = (item.credit_risk || 'NEUTRAL') + ' RISK';
+    document.getElementById('cmSignal').textContent = item.key_risk_signal || 'Routine News';
+    document.getElementById('cmVader').textContent = (item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A';
+    document.getElementById('cmConfidence').textContent = matrix.confidence ? (matrix.confidence * 100).toFixed(0) + '%' : '50%';
+
+    // Dimensions
+    const dims = [
+      { name: 'Asset Quality', data: matrix.asset_quality || {} },
+      { name: 'Capital & Liquidity', data: matrix.capital_liquidity || {} },
+      { name: 'Earnings & NAV', data: matrix.earnings_nav || {} },
+      { name: 'Governance & Legal', data: matrix.governance_regulatory || {} },
+      { name: 'Rating Action', data: matrix.rating_action || {} },
+    ];
+
+    document.getElementById('cmDims').innerHTML = dims.map(d => {
+      const st = d.data.status || 'NOT_MENTIONED';
+      let tagBg = 'rgba(100,116,139,0.1)', tagColor = '#94a3b8';
+      if (['DETERIORATING','STRAINED','ADVERSE','DOWNGRADE_RISK'].includes(st)) { tagBg = 'rgba(239,68,68,0.15)'; tagColor = '#f87171'; }
+      else if (['IMPROVING','STRONG','POSITIVE','UPGRADE'].includes(st)) { tagBg = 'rgba(16,185,129,0.15)'; tagColor = '#34d399'; }
+      else if (['STABLE','ADEQUATE'].includes(st)) { tagBg = 'rgba(59,130,246,0.15)'; tagColor = '#60a5fa'; }
+      
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:600;color:var(--text-primary);">${d.name}</span>
+        <span style="background:${tagBg};color:${tagColor};padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;">${st}</span>
+      </div>`;
+    }).join('');
+
+    // Signals Reasoning
+    const signals = matrix.signals || [];
+    if (signals.length) {
+      document.getElementById('cmReasons').innerHTML = signals.map(s => `
+        <div style="background:var(--bg-tertiary);border-left:3px solid var(--accent-blue);padding:8px 12px;margin-bottom:6px;border-radius:0 4px 4px 0;">
+          <div style="font-size:11px;font-weight:700;color:var(--accent-blue);">${esc(s.term || '')} (${esc(s.dimension || '')})</div>
+          <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">"${esc(s.matched_phrase || '')}"</div>
+          <div style="font-size:11px;color:var(--text-primary);margin-top:4px;font-style:italic;">💡 Reason: ${esc(s.reason || '')}</div>
+        </div>
+      `).join('');
+    } else {
+      document.getElementById('cmReasons').innerHTML = '<div style="font-size:11px;color:var(--text-muted);font-style:italic;">No adverse financial risk signals detected in this headline.</div>';
+    }
+
+    document.getElementById('creditRiskModal').style.display = 'flex';
+  } catch(e) { console.error(e); }
+}
+function closeCreditModal() { document.getElementById('creditRiskModal').style.display = 'none'; }
+</script>
+
+<!-- CREDIT RISK MATRIX MODAL -->
+<div id="creditRiskModal" class="modal-overlay" style="display:none;">
+  <div class="modal-card" style="max-width:620px;width:95%;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+      <div>
+        <h3 id="cmHeadline" style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Headline</h3>
+        <div id="cmCompany" style="font-size:11px;color:var(--accent-blue);font-weight:600;">Company</div>
+      </div>
+      <button onclick="closeCreditModal()" style="background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <span id="cmRiskPill" style="background:rgba(239,68,68,0.15);color:#f87171;border:1px solid #ef4444;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:800;">HIGH RISK</span>
+      <span id="cmSignal" style="background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);padding:4px 12px;border-radius:14px;font-size:11px;font-weight:600;">Signal</span>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-secondary);align-self:center;">Baseline VADER: <b id="cmVader">0.0</b> | Confidence: <b id="cmConfidence">90%</b></span>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Multi-Dimensional Risk Breakdown</div>
+    <div id="cmDims"></div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:14px;margin-bottom:6px;">Detected Signal Explanations &amp; Context Reasons</div>
+    <div id="cmReasons"></div>
+
+    <div style="text-align:right;margin-top:16px;">
+      <button class="btn btn-secondary" onclick="closeCreditModal()">Close</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+<script>
+setInterval(() => {
+  const a = document.querySelector('.tab-content.active');
+  if (a?.id === 'tab-news') loadNews();
+  if (a?.id === 'tab-dashboard') loadDashboard();
+}, 30000);
+
+// Init
+loadDashboard();
+</script>
+</body>
+</html>
