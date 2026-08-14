@@ -2750,9 +2750,10 @@ function openCreditModal(jsonStr) {
     document.getElementById('cmCompany').textContent = (item.company || 'General') + ' | ' + (item.source || '');
     document.getElementById('cmRiskPill').textContent = (item.credit_risk || 'NEUTRAL') + ' RISK';
     document.getElementById('cmSignal').textContent = item.key_risk_signal || 'Routine News';
+    const fbStr = (matrix.finbert_label) ? ` | ⚡ FinBERT: ${matrix.finbert_label} (${matrix.finbert_score >= 0 ? '+' : ''}${matrix.finbert_score})` : '';
     const fvStr = (matrix.finvader_score !== null && matrix.finvader_score !== undefined) ? ` | FinVADER: ${matrix.finvader_score}` : '';
     const fsStr = (matrix.fin_sentiment_label) ? ` | fin-sentiment: ${matrix.fin_sentiment_label}` : '';
-    document.getElementById('cmVader').textContent = ((item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A') + fvStr + fsStr;
+    document.getElementById('cmVader').textContent = `VADER: ${((item.baseline_vader_score !== undefined) ? item.baseline_vader_score : 'N/A')}` + fbStr + fvStr + fsStr;
     document.getElementById('cmConfidence').textContent = matrix.confidence ? (matrix.confidence * 100).toFixed(0) + '%' : '50%';
 
     const dims = [

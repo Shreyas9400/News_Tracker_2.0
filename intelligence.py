@@ -1,16 +1,13 @@
-#!/usr/bin/env python3
-"""
-intelligence.py — Scoring, Sentiment, Classification & Query Builder
-=====================================================================
-Financial NLP engine with BM25 scoring, TextBlob + financial lexicon
-sentiment analysis, taxonomy classification, and search query building.
-"""
-
+import os
 import re
+import json
 import math
 import collections
 import datetime
+import threading
 from typing import List, Dict, Tuple, Optional, Any
+
+import numpy as np
 
 from constants import (
     logger, SOURCE_RELIABILITY, TAXONOMY_MAP, NOISE_WORDS,
@@ -18,7 +15,7 @@ from constants import (
 )
 
 # ---------------------------------------------------------------------------
-# Optional: TextBlob (lightweight, ~2MB RAM)
+# Optional Lexicon Engines (Fallbacks)
 # ---------------------------------------------------------------------------
 HAS_TEXTBLOB = False
 try:
@@ -54,6 +51,121 @@ try:
     logger.info("fin-sentiment PyTorch model engine loaded.")
 except Exception as e:
     logger.info("fin-sentiment package not loaded: %s", e)
+
+# ---------------------------------------------------------------------------
+# Quantized FinBERT ONNX Engine (Lightweight High-Accuracy Transformer)
+# ---------------------------------------------------------------------------
+class FinBERTONNXEngine:
+    """Thread-safe singleton for running Quantized FinBERT ONNX on CPU."""
+    _instance = None
+    _lock = threading.Lock()
+
+    def __init__(self):
+        self.session = None
+        self.tokenizer = None
+        self.id2label = {0: "negative", 1: "neutral", 2: "positive"}
+        self.is_ready = False
+        self._load()
+
+    def _load(self):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        model_dir = os.path.join(base_dir, "models", "finbert_onnx")
+        model_path = os.path.join(model_dir, "model_quantized.onnx")
+        tok_path = os.path.join(model_dir, "tokenizer.json")
+        cfg_path = os.path.join(model_dir, "config.json")
+
+        if not os.path.exists(model_path) or not os.path.exists(tok_path):
+            try:
+                from scripts.setup_finbert_onnx import setup_finbert
+                logger.info("FinBERT ONNX model files missing. Triggering automated download...")
+                setup_finbert()
+            except Exception as e:
+                logger.info("Could not auto-download FinBERT ONNX model: %s; using lexicon fallback.", e)
+                return
+
+        try:
+            import onnxruntime as ort
+            from tokenizers import Tokenizer
+
+            self.tokenizer = Tokenizer.from_file(tok_path)
+            self.tokenizer.enable_truncation(max_length=128)
+            self.tokenizer.enable_padding(length=128)
+
+            opts = ort.SessionOptions()
+            opts.intra_op_num_threads = 2
+            opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            self.session = ort.InferenceSession(model_path, sess_options=opts, providers=["CPUExecutionProvider"])
+
+            if os.path.exists(cfg_path):
+                with open(cfg_path, "r") as f:
+                    cfg = json.load(f)
+                raw_id2label = cfg.get("id2label", {})
+                if raw_id2label:
+                    self.id2label = {int(k): v.lower() for k, v in raw_id2label.items()}
+
+            self.is_ready = True
+            logger.info("FinBERT Quantized ONNX Engine loaded successfully (~45MB INT8).")
+        except Exception as e:
+            logger.warning("Failed to initialize FinBERT ONNX Engine: %s", e)
+            self.is_ready = False
+
+    @classmethod
+    def get_instance(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
+    def predict(self, headline: str) -> Optional[Dict[str, Any]]:
+        """Inference on CPU. Returns sentiment label, compound score, and probabilities."""
+        if not self.is_ready or not self.session or not self.tokenizer or not headline:
+            return None
+        try:
+            encoded = self.tokenizer.encode(headline)
+            input_ids = np.array([encoded.ids], dtype=np.int64)
+            attention_mask = np.array([encoded.attention_mask], dtype=np.int64)
+
+            inputs = {"input_ids": input_ids, "attention_mask": attention_mask}
+            outputs = self.session.run(None, inputs)
+            logits = outputs[0][0]
+
+            # Softmax
+            exp_l = np.exp(logits - np.max(logits))
+            probs = exp_l / exp_l.sum()
+
+            pred_id = int(np.argmax(probs))
+            raw_label = self.id2label.get(pred_id, "neutral")
+
+            # Label normalization
+            if raw_label == "positive":
+                label = "Positive"
+                compound = float(probs[pred_id] * 0.85)
+            elif raw_label == "negative":
+                label = "Negative"
+                compound = float(-probs[pred_id] * 0.85)
+            else:
+                label = "Neutral"
+                compound = 0.0
+
+            # Probabilities mapping
+            neg_idx = next((k for k, v in self.id2label.items() if v == "negative"), 0)
+            neu_idx = next((k for k, v in self.id2label.items() if v == "neutral"), 1)
+            pos_idx = next((k for k, v in self.id2label.items() if v == "positive"), 2)
+
+            return {
+                "label": label,
+                "compound_score": round(compound, 3),
+                "confidence": round(float(probs[pred_id]), 3),
+                "probabilities": {
+                    "negative": round(float(probs[neg_idx]), 3),
+                    "neutral": round(float(probs[neu_idx]), 3),
+                    "positive": round(float(probs[pos_idx]), 3),
+                },
+                "model": "Distil-FinBERT-INT8"
+            }
+        except Exception as e:
+            logger.debug("FinBERT ONNX inference error: %s", e)
+            return None
 
 
 # ---------------------------------------------------------------------------
@@ -100,10 +212,11 @@ class FinancialLexicon:
 
     RATING_ACTION_TERMS = {
         "rating watch negative": -0.95, "watch negative": -0.95, "negative outlook": -0.85,
-        "downgrade": -0.9, "downgraded": -0.9, "rating cut": -0.9, "creditwatch negative": -0.95,
+        "downgrade": -0.9, "downgraded": -0.9, "downgrades": -0.9, "rating downgrade": -0.9,
+        "rating cut": -0.9, "creditwatch negative": -0.95, "junk rating": -0.9, "cut to junk": -0.95,
         "rating affirmation": 0.0, "affirmed": 0.0, "rating withdrawn": -0.5,
         "rating watch positive": 0.8, "watch positive": 0.8, "positive outlook": 0.7,
-        "upgrade": 0.85, "upgraded": 0.85, "upgrades": 0.85, "rating boost": 0.8,
+        "upgrade": 0.85, "upgraded": 0.85, "upgrades": 0.85, "rating upgrade": 0.85, "rating boost": 0.8,
         "fitch": 0.0, "moody's": 0.0, "s&p": 0.0,
     }
 
@@ -325,7 +438,23 @@ class CreditRiskIntelligenceEngine:
 
     @staticmethod
     def analyze(headline: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        # Step 1: Compute baseline VADER score
+        # Step 0: High-Accuracy Contextual Transformer Sentiment (Quantized Distil-FinBERT ONNX)
+        finbert_res = None
+        finbert_score = None
+        finbert_label = None
+        finbert_confidence = None
+        finbert_probabilities = {}
+        try:
+            finbert_res = FinBERTONNXEngine.get_instance().predict(headline)
+            if finbert_res:
+                finbert_score = finbert_res["compound_score"]
+                finbert_label = finbert_res["label"]
+                finbert_confidence = finbert_res["confidence"]
+                finbert_probabilities = finbert_res.get("probabilities", {})
+        except Exception as e:
+            logger.debug("FinBERT prediction error: %s", e)
+
+        # Step 1: Compute baseline VADER score (fallback/baseline)
         baseline_vader_score = 0.0
         if HAS_VADER:
             try:
@@ -388,6 +517,7 @@ class CreditRiskIntelligenceEngine:
         has_strong_capital = dimensions["capital_liquidity"]["status"] == "STRONG"
         has_positive_earnings = dimensions["earnings_nav"]["status"] == "POSITIVE"
 
+        # Tier 1: Hard Distress Rules (Deterministic Guardrails)
         if has_negative_rating or has_deteriorating_asset or has_strained_capital or has_adverse_gov:
             credit_risk = "HIGH"
             overall_sentiment = "VERY_NEGATIVE" if (has_negative_rating and has_deteriorating_asset) else "NEGATIVE"
@@ -400,6 +530,17 @@ class CreditRiskIntelligenceEngine:
         elif has_positive_earnings:
             credit_risk = "LOW"
             overall_sentiment = "POSITIVE"
+        # Tier 2: FinBERT ONNX Transformer Contextual Sentiment (if available)
+        elif finbert_label:
+            if finbert_label == "Positive" and finbert_confidence >= 0.50:
+                credit_risk = "FAVORABLE" if finbert_confidence >= 0.80 else "LOW"
+                overall_sentiment = "VERY_POSITIVE" if finbert_confidence >= 0.85 else "POSITIVE"
+            elif finbert_label == "Negative" and finbert_confidence >= 0.50:
+                credit_risk = "MEDIUM"
+                overall_sentiment = "NEGATIVE"
+            else:
+                credit_risk = "NEUTRAL"
+                overall_sentiment = "NEUTRAL"
         elif signals:
             credit_risk = "LOW"
             overall_sentiment = "NEUTRAL"
@@ -407,8 +548,8 @@ class CreditRiskIntelligenceEngine:
             credit_risk = "NEUTRAL"
             overall_sentiment = "NEUTRAL"
 
-        # Override sentiment if finvader_enabled is explicitly set and finvader_label is available
-        if finvader_enabled and finvader_label and not signals:
+        # Override sentiment if finvader_enabled is explicitly set and finvader_label is available (legacy override)
+        if finvader_enabled and finvader_label and not signals and not finbert_label:
             overall_sentiment = finvader_label.upper()
 
         # Determine Key Risk Signal
@@ -428,6 +569,8 @@ class CreditRiskIntelligenceEngine:
             key_risk_signal = "Asset Quality Improving"
         elif has_strong_capital:
             key_risk_signal = "Capital Structure Strengthening"
+        elif finbert_label and finbert_label != "Neutral":
+            key_risk_signal = f"FinBERT {finbert_label} ({int((finbert_confidence or 0.5)*100)}%)"
         elif signals:
             key_risk_signal = "Financial Event Tracked"
         elif finvader_enabled and finvader_label and finvader_label != "Neutral":
@@ -438,7 +581,9 @@ class CreditRiskIntelligenceEngine:
         # Confidence calculation
         if signals:
             max_sev = max(s["severity"] for s in signals)
-            confidence = min(0.95, round(0.65 + (max_sev * 0.3), 2))
+            confidence = min(0.98, round(0.70 + (max_sev * 0.28), 2))
+        elif finbert_confidence:
+            confidence = round(float(finbert_confidence), 2)
         else:
             confidence = 0.50 if headline else 0.00
 
@@ -447,6 +592,10 @@ class CreditRiskIntelligenceEngine:
             "overall_sentiment": overall_sentiment,
             "credit_risk": credit_risk,
             "key_risk_signal": key_risk_signal,
+            "finbert_score": finbert_score,
+            "finbert_label": finbert_label,
+            "finbert_confidence": finbert_confidence,
+            "finbert_probabilities": finbert_probabilities,
             "baseline_vader_score": baseline_vader_score,
             "finvader_score": finvader_score,
             "finvader_label": finvader_label,
@@ -472,6 +621,17 @@ class SentimentAnalyzer:
     @staticmethod
     def analyze(headline: str) -> Tuple[str, float]:
         matrix = CreditRiskIntelligenceEngine.analyze(headline)
+        # If FinBERT compound score is available, use exact continuous score
+        finbert_score = matrix.get("finbert_score")
+        if finbert_score is not None:
+            if finbert_score > 0.15:
+                label = "Positive" if finbert_score < 0.65 else "Very Positive"
+            elif finbert_score < -0.15:
+                label = "Negative" if finbert_score > -0.65 else "Very Negative"
+            else:
+                label = "Neutral"
+            return label, finbert_score
+
         s_map = {
             "VERY_POSITIVE": ("Very Positive", 0.85),
             "POSITIVE": ("Positive", 0.45),

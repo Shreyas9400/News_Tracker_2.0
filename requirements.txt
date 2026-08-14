@@ -3,3 +3,6 @@ vaderSentiment>=3.3.2
 duckduckgo-search>=6.0.0
 finvader>=1.0.4
 fin-sentiment>=0.1.4
+onnxruntime>=1.16.0
+tokenizers>=0.15.0
+numpy>=1.22.0

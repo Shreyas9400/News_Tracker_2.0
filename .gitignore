@@ -19,6 +19,9 @@ env/
 *.db-shm
 *.db-wal
 
+# Large ONNX binary models (downloaded dynamically via setup_finbert_onnx.py)
+models/finbert_onnx/*.onnx
+
 # Ensure database and config files ARE tracked per requirement
 !*.db
 !config.json
