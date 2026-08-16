@@ -195,6 +195,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif path == "/api/visibility":
             self._json(self.server.app_db.get_visibility())
 
+        elif path.startswith("/api/canonical_events/") and path.endswith("/sources"):
+            cid = path.split("/")[3]
+            sources = self.server.app_db.get_canonical_event_sources(cid)
+            self._json({"canonical_id": cid, "sources": sources})
+
         elif path == "/api/earnings/calendar":
             comp = qs.get("company", ["All"])[0]
             qtr = qs.get("quarter", ["All"])[0]

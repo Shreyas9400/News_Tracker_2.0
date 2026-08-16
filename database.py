@@ -9,6 +9,7 @@ daily top news, user-taggable sentiment, and training data export.
 
 import json
 import re
+import uuid
 import sqlite3
 import threading
 import datetime
@@ -19,6 +20,7 @@ from constants import (
     logger, DEFAULT_PORTFOLIO, DEFAULT_INDUSTRIES, DEFAULT_DOMAINS,
     DEFAULT_QUERY_CATEGORIES, DEFAULT_KEYWORDS,
     parse_pub_date, auto_generate_aliases, extract_domain, resolve_db_path,
+    DateProvenanceResolver,
 )
 
 
@@ -336,6 +338,52 @@ class DatabaseManager:
                 c.execute("INSERT INTO schema_migrations(version, description) VALUES(3, '3-Tier Normalized Portfolio Model')")
                 c.commit()
 
+            # ---------------------------------------------------------------
+            # Migration v4: Date Provenance & Canonical Syndication Events
+            # ---------------------------------------------------------------
+            if 4 not in applied_versions:
+                logger.info("Applying schema migration v4: Date Provenance & Canonical Syndication Events...")
+                # 1. Create canonical_events table
+                c.execute("""
+                    CREATE TABLE IF NOT EXISTS canonical_events (
+                        id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+                        canonical_id           TEXT UNIQUE NOT NULL,
+                        entity_id              INTEGER NULL,
+                        company_name           TEXT NOT NULL,
+                        headline_canonical     TEXT NOT NULL,
+                        canonical_published_at TEXT NOT NULL,
+                        confidence             TEXT DEFAULT 'HIGH',
+                        source_count           INTEGER DEFAULT 1,
+                        created_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at             TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
+                c.execute("CREATE INDEX IF NOT EXISTS idx_canonical_events_company ON canonical_events(company_name);")
+                c.execute("CREATE INDEX IF NOT EXISTS idx_canonical_events_pub ON canonical_events(canonical_published_at);")
+
+                # 2. Add provenance and clustering columns to headlines
+                cols_h = [r["name"] for r in c.execute("PRAGMA table_info(headlines)").fetchall()]
+                migrations_h4 = {
+                    "published_at": "ALTER TABLE headlines ADD COLUMN published_at TEXT NULL",
+                    "published_at_raw": "ALTER TABLE headlines ADD COLUMN published_at_raw TEXT NULL",
+                    "crawled_at": "ALTER TABLE headlines ADD COLUMN crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                    "date_source": "ALTER TABLE headlines ADD COLUMN date_source TEXT DEFAULT 'RSS_PUBDATE'",
+                    "date_confidence": "ALTER TABLE headlines ADD COLUMN date_confidence TEXT DEFAULT 'LOW'",
+                    "canonical_event_id": "ALTER TABLE headlines ADD COLUMN canonical_event_id TEXT NULL",
+                    "canonical_published_at": "ALTER TABLE headlines ADD COLUMN canonical_published_at TEXT NULL",
+                    "canonical_confidence": "ALTER TABLE headlines ADD COLUMN canonical_confidence TEXT NULL",
+                }
+                for col, sql in migrations_h4.items():
+                    if col not in cols_h:
+                        c.execute(sql)
+
+                # 3. Backfill legacy published_time into published_at if empty
+                c.execute("UPDATE headlines SET published_at = published_time WHERE published_at IS NULL AND published_time IS NOT NULL")
+                c.execute("UPDATE headlines SET published_at_raw = published_time WHERE published_at_raw IS NULL AND published_time IS NOT NULL")
+
+                c.execute("INSERT INTO schema_migrations(version, description) VALUES(4, 'Date Provenance and Canonical Syndication Events')")
+                c.commit()
+
     def _seed(self, c: sqlite3.Connection):
         with self._write_lock:
             # Seed master industries catalog
@@ -397,35 +445,181 @@ class DatabaseManager:
                 for kw in DEFAULT_KEYWORDS:
                     c.execute("INSERT INTO keywords(word,category,enabled) VALUES(?,'general',1)", (kw,))
             c.commit()
-            if c.execute("SELECT COUNT(*) FROM domains").fetchone()[0] == 0:
-                for d in DEFAULT_DOMAINS:
-                    c.execute("INSERT INTO domains(domain_name,enabled) VALUES(?,1)", (d,))
-                    c.execute("INSERT OR IGNORE INTO website_visibility(domain_name,is_visible) VALUES(?,1)", (d,))
-            if c.execute("SELECT COUNT(*) FROM keywords").fetchone()[0] == 0:
-                for kw in DEFAULT_KEYWORDS:
-                    c.execute("INSERT INTO keywords(word,category,enabled) VALUES(?,'general',1)", (kw,))
-            c.commit()
+    # -----------------------------------------------------------------------
+    # Syndication Clustering & Canonical Event Resolution (Phase 2)
+    # -----------------------------------------------------------------------
+    @staticmethod
+    def _extract_cluster_tokens(headline: str) -> List[str]:
+        if not headline:
+            return []
+        clean = re.sub(r'\s*[-|–—]\s*(Reuters|Bloomberg|PR Newswire|Business Wire|Yahoo Finance|CNBC|WSJ|MarketWatch|Investing\.com|Seeking Alpha|Forbes|Financial Times|The Wall Street Journal|Associated Press|AP News|Benzinga|TheStreet|Barron\'s|GlobeNewswire).*$', '', headline, flags=re.IGNORECASE)
+        clean = re.sub(r'\s*\([A-Z]+:[A-Z0-9.-]+\)', '', clean)
+        clean = clean.lower()
+        # Normalize quarter representations
+        clean = re.sub(r'\b(second-quarter|second quarter|2nd-quarter|2nd quarter|2q)\b', ' q2 ', clean)
+        clean = re.sub(r'\b(first-quarter|first quarter|1st-quarter|1st quarter|1q)\b', ' q1 ', clean)
+        clean = re.sub(r'\b(third-quarter|third quarter|3rd-quarter|3rd quarter|3q)\b', ' q3 ', clean)
+        clean = re.sub(r'\b(fourth-quarter|fourth quarter|4th-quarter|4th quarter|4q)\b', ' q4 ', clean)
+        clean = re.sub(r'\bnet\s+income\b', ' earnings ', clean)
+        # Normalize billion / million amounts (e.g. 18.1B, $18.1 Billion)
+        clean = re.sub(r'[\$]?(\d+(?:\.\d+)?)\s*(?:b|billion)\b', lambda m: ' ' + m.group(1).replace('.', '_') + '_billion ', clean)
+        clean = re.sub(r'[\$]?(\d+(?:\.\d+)?)\s*(?:m|million)\b', lambda m: ' ' + m.group(1).replace('.', '_') + '_million ', clean)
+        clean = re.sub(r'[^a-zA-Z0-9_\s]', ' ', clean)
+
+        FINANCIAL_SYNONYMS = {
+            'profit': 'earnings', 'income': 'earnings', 'net_income': 'earnings', 'results': 'earnings',
+            'sales': 'revenue', 'topline': 'revenue',
+        }
+        stopwords = {'the', 'and', 'for', 'with', 'from', 'inc', 'corp', 'ltd', 'company', 'corporation', 'co', 'plc', 'group', 'hits', 'posts', 'reports', 'of', 'on', 'in', 'at', 'to', 'a', 'an'}
+
+        tokens = []
+        for w in clean.split():
+            if len(w) > 1 and w not in stopwords:
+                syn = FINANCIAL_SYNONYMS.get(w, w)
+                tokens.append(syn)
+        return tokens
+
+    def _find_or_create_canonical_event(self, c: sqlite3.Connection, company: str, headline: str, published_at: str) -> Tuple[str, str, str]:
+        """
+        Finds matching candidate canonical event or creates a new one.
+        Candidate matching requires:
+          - Same Entity / Company Match
+          - High Headline Similarity (Token overlap >= 0.50)
+          - Temporal Proximity (within ±36-hour sliding window of publication)
+        Returns (canonical_id, canonical_published_at, canonical_confidence).
+        """
+        company = (company or "General").strip()
+        pub_iso = published_at or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        clean_tokens = self._extract_cluster_tokens(headline)
+        norm_headline = " ".join(clean_tokens)
+
+        # If general/unknown company without clean tokens, create isolated event
+        if company.lower() in ("general", "unknown", "") or not norm_headline:
+            cid = f"evt_{uuid.uuid4().hex[:12]}"
+            c.execute("""
+                INSERT INTO canonical_events(canonical_id, company_name, headline_canonical, canonical_published_at, confidence, source_count)
+                VALUES(?, ?, ?, ?, 'HIGH', 1)
+            """, (cid, company, headline, pub_iso))
+            return cid, pub_iso, "HIGH"
+
+        # Search existing canonical events for this company within sliding ±36h temporal window
+        dt_center = pub_iso.replace('T', ' ')[:19]
+        recent_events = c.execute("""
+            SELECT * FROM canonical_events
+            WHERE LOWER(company_name) = LOWER(?)
+              AND canonical_published_at >= datetime(?, '-36 hours')
+              AND canonical_published_at <= datetime(?, '+36 hours')
+            ORDER BY canonical_published_at ASC
+        """, (company, dt_center, dt_center)).fetchall()
+
+        best_event = None
+        best_sim = 0.0
+
+        for ev in recent_events:
+            ev_tokens = self._extract_cluster_tokens(ev["headline_canonical"])
+            if not ev_tokens:
+                continue
+
+            set1, set2 = set(clean_tokens), set(ev_tokens)
+            intersection = set1.intersection(set2)
+            union = set1.union(set2)
+            jaccard = len(intersection) / len(union) if union else 0.0
+            overlap_min = len(intersection) / min(len(set1), len(set2)) if min(len(set1), len(set2)) > 0 else 0.0
+            sim = 0.5 * jaccard + 0.5 * overlap_min
+
+            if sim > best_sim:
+                best_sim = sim
+                best_event = ev
+
+        # Multi-signal confidence threshold (Requires high similarity >= 0.50)
+        if best_event and best_sim >= 0.50:
+            cid = best_event["canonical_id"]
+            ev_pub = best_event["canonical_published_at"]
+            confidence = "HIGH" if best_sim >= 0.65 else "MEDIUM"
+            
+            # Earliest verified timestamp wins for the canonical event without overwriting source published_at
+            new_canonical_pub = ev_pub
+            if pub_iso < ev_pub:
+                new_canonical_pub = pub_iso
+
+            c.execute("""
+                UPDATE canonical_events
+                SET canonical_published_at = ?,
+                    source_count = source_count + 1,
+                    confidence = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE canonical_id = ?
+            """, (new_canonical_pub, confidence, cid))
+
+            return cid, new_canonical_pub, confidence
+
+        # No confident match -> Create a brand new canonical event
+        cid = f"evt_{uuid.uuid4().hex[:12]}"
+        c.execute("""
+            INSERT INTO canonical_events(canonical_id, company_name, headline_canonical, canonical_published_at, confidence, source_count)
+            VALUES(?, ?, ?, ?, 'HIGH', 1)
+        """, (cid, company, headline, pub_iso))
+        return cid, pub_iso, "HIGH"
+
+    def get_canonical_event_sources(self, canonical_id: str) -> List[Dict[str, Any]]:
+        """Returns all individual source headlines clustered under a canonical event."""
+        c = self._conn()
+        rows = c.execute("""
+            SELECT id, headline, source, url, published_at, published_at_raw, crawled_at,
+                   date_source, date_confidence, sentiment, relevance_score
+            FROM headlines
+            WHERE canonical_event_id = ?
+            ORDER BY published_at ASC, id ASC
+        """, (canonical_id,)).fetchall()
+        return [dict(r) for r in rows]
 
     # -----------------------------------------------------------------------
     # Headlines CRUD
     # -----------------------------------------------------------------------
     def save_headline(self, data: Dict[str, Any]) -> Tuple[bool, str]:
         """
-        Saves headline to DB.
+        Saves headline to DB with full date provenance resolution and candidate syndication clustering.
         Returns (saved: bool, reason: 'saved' | 'deduped' | 'error')
         """
         with self._write_lock:
             c = self._conn()
             try:
-                pub_time = parse_pub_date(data.get("published_time"))
+                # 1. Multi-tier date provenance resolution
+                date_prov = DateProvenanceResolver.resolve_best_date(
+                    raw_date_str=data.get("published_time") or data.get("published_at_raw"),
+                    html_content=data.get("html_content")
+                )
+                published_at = date_prov["published_at"]
+                published_at_raw = date_prov["published_at_raw"]
+                crawled_at = date_prov["crawled_at"]
+                date_source = date_prov["date_source"]
+                date_confidence = date_prov["date_confidence"]
+                
+                # Legacy format for backward compatibility
+                pub_time = published_at[:10] + " " + published_at[11:16] if len(published_at) >= 16 else published_at
+
+                # 2. Candidate Syndication Clustering (Phase 2)
+                canonical_event_id = data.get("canonical_event_id")
+                canonical_published_at = data.get("canonical_published_at")
+                canonical_confidence = data.get("canonical_confidence")
+
+                if not canonical_event_id:
+                    canonical_event_id, canonical_published_at, canonical_confidence = self._find_or_create_canonical_event(
+                        c, data.get("company", "General"), data["headline"], published_at
+                    )
+
                 domain = extract_domain(data["url"], data.get("source", ""))
                 matrix = data.get("credit_risk_matrix", {})
                 matrix_json = json.dumps(matrix) if matrix else None
+
                 c.execute("""
                     INSERT INTO headlines(headline,source,url,canonical_url,published_time,search_query,
                         company,industry,event_category,sentiment,relevance_score,news_volume_status,
-                        providers_json,domain_name,credit_risk,key_risk_signal,baseline_vader_score,credit_risk_matrix_json)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        providers_json,domain_name,credit_risk,key_risk_signal,baseline_vader_score,credit_risk_matrix_json,
+                        published_at,published_at_raw,crawled_at,date_source,date_confidence,
+                        canonical_event_id,canonical_published_at,canonical_confidence)
+                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 """, (
                     data["headline"], data["source"], data["url"],
                     data.get("canonical_url", data["url"]),
@@ -440,6 +634,8 @@ class DatabaseManager:
                     data.get("key_risk_signal", "Routine News"),
                     data.get("baseline_vader_score", 0.0),
                     matrix_json,
+                    published_at, published_at_raw, crawled_at, date_source, date_confidence,
+                    canonical_event_id, canonical_published_at, canonical_confidence
                 ))
                 c.commit()
                 if domain:
@@ -512,7 +708,9 @@ class DatabaseManager:
                                   filter_type: str = "All") -> Dict[str, Any]:
         """Fetches headlines with full filtering and pagination."""
         base_sql = """
-            SELECT h.* FROM headlines h
+            SELECT h.*, COALESCE(ce.source_count, 1) AS cluster_sources_count
+            FROM headlines h
+            LEFT JOIN canonical_events ce ON h.canonical_event_id = ce.canonical_id
             LEFT JOIN website_visibility wv
               ON wv.domain_name = (
                 SELECT wv2.domain_name FROM website_visibility wv2
@@ -595,6 +793,15 @@ class DatabaseManager:
         return {
             "id": r["id"], "headline": r["headline"], "source": r["source"],
             "url": r["url"], "published_time": r["published_time"],
+            "published_at": r["published_at"] if "published_at" in keys and r["published_at"] else r["published_time"],
+            "published_at_raw": r["published_at_raw"] if "published_at_raw" in keys and r["published_at_raw"] else r["published_time"],
+            "crawled_at": r["crawled_at"] if "crawled_at" in keys and r["crawled_at"] else "",
+            "date_source": r["date_source"] if "date_source" in keys and r["date_source"] else "RSS_PUBDATE",
+            "date_confidence": r["date_confidence"] if "date_confidence" in keys and r["date_confidence"] else "LOW",
+            "canonical_event_id": r["canonical_event_id"] if "canonical_event_id" in keys else None,
+            "canonical_published_at": r["canonical_published_at"] if "canonical_published_at" in keys else None,
+            "canonical_confidence": r["canonical_confidence"] if "canonical_confidence" in keys else None,
+            "cluster_sources_count": r["cluster_sources_count"] if "cluster_sources_count" in keys else 1,
             "company": r["company"], "industry": r["industry"],
             "event_category": r["event_category"],
             "sentiment": r["user_sentiment"] if "user_sentiment" in keys and r["user_sentiment"] else r["sentiment"],

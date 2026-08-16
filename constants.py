@@ -484,25 +484,176 @@ def save_config(config: Dict[str, Any]):
 
 
 # ---------------------------------------------------------------------------
+# Date Provenance & Deterministic Resolution Engine (Phase 1)
+# ---------------------------------------------------------------------------
+class DateProvenanceResolver:
+    """
+    Multi-Tiered Deterministic Publication Date & Provenance Resolver.
+    
+    Hierarchy:
+      1. JSON-LD datePublished (Confidence: HIGH) - strictly datePublished, ignoring dateCreated
+      2. OpenGraph / CMS Meta (Confidence: HIGH) - article:published_time, og:published_time, parsely-pub-date, sailthru.date
+      3. RSS pubDate / Atom updated (Explicit TZ: MEDIUM, Naive/Unspecified TZ: LOW)
+      4. Crawl Timestamp Fallback (Confidence: LOW)
+    """
+
+    @staticmethod
+    def _parse_iso_or_rfc(raw_date_str: str) -> tuple:
+        """
+        Parses date string into a UTC datetime and returns (utc_dt, has_explicit_tz).
+        """
+        if not raw_date_str or not isinstance(raw_date_str, str) or not raw_date_str.strip():
+            return None, False
+        s = raw_date_str.strip()
+
+        # 1. Try RFC-822 / email format (e.g. 'Fri, 14 Aug 2026 10:02:00 EST' or '+0000')
+        try:
+            dt = parsedate_to_datetime(s)
+            has_tz = dt.tzinfo is not None
+            if has_tz:
+                utc_dt = dt.astimezone(datetime.timezone.utc)
+            else:
+                utc_dt = dt.replace(tzinfo=datetime.timezone.utc)
+            return utc_dt, has_tz
+        except Exception:
+            pass
+
+        # 2. Try ISO-8601 (e.g. '2026-08-14T14:30:00Z', '2026-08-14T10:30:00-04:00', '2026-08-14 14:30:00')
+        try:
+            clean_s = s.replace("Z", "+00:00")
+            dt = datetime.datetime.fromisoformat(clean_s)
+            has_tz = dt.tzinfo is not None
+            if has_tz:
+                utc_dt = dt.astimezone(datetime.timezone.utc)
+            else:
+                utc_dt = dt.replace(tzinfo=datetime.timezone.utc)
+            return utc_dt, has_tz
+        except Exception:
+            pass
+
+        # 3. Try standard formats YYYY-MM-DD or YYYY/MM/DD
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d", "%d/%m/%Y %H:%M:%S", "%m/%d/%Y %H:%M:%S"):
+            try:
+                dt = datetime.datetime.strptime(s[:19], fmt)
+                return dt.replace(tzinfo=datetime.timezone.utc), False
+            except Exception:
+                pass
+
+        return None, False
+
+    @classmethod
+    def resolve_html_dates(cls, html_text: str) -> Optional[Dict[str, Any]]:
+        """
+        Extracts publication date from HTML content using JSON-LD (Tier 1) and OpenGraph (Tier 2).
+        Strictly ignores dateCreated for publication resolution.
+        """
+        if not html_text or not isinstance(html_text, str):
+            return None
+
+        # 1. Tier 1: JSON-LD (Search for "datePublished")
+        json_ld_matches = re.findall(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html_text, flags=re.DOTALL | re.IGNORECASE)
+        for block in json_ld_matches:
+            try:
+                data = json.loads(block.strip())
+                items = data if isinstance(data, list) else [data]
+                expanded_items = []
+                for it in items:
+                    if isinstance(it, dict) and "@graph" in it and isinstance(it["@graph"], list):
+                        expanded_items.extend(it["@graph"])
+                    elif isinstance(it, dict):
+                        expanded_items.append(it)
+
+                for item in expanded_items:
+                    if not isinstance(item, dict):
+                        continue
+                    # Strictly check datePublished (ignoring dateCreated)
+                    raw_pub = item.get("datePublished")
+                    if raw_pub and isinstance(raw_pub, str):
+                        utc_dt, _ = cls._parse_iso_or_rfc(raw_pub)
+                        if utc_dt:
+                            return {
+                                "published_at": utc_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                "published_at_raw": str(raw_pub).strip(),
+                                "date_source": "JSON_LD",
+                                "date_confidence": "HIGH"
+                            }
+            except Exception:
+                continue
+
+        # 2. Tier 2: OpenGraph & CMS Meta Tags
+        meta_patterns = [
+            r'<meta[^>]*property=["\']article:published_time["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*content=["\']([^"\']+)["\'][^>]*property=["\']article:published_time["\']',
+            r'<meta[^>]*property=["\']og:published_time["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*name=["\']parsely-pub-date["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*name=["\']sailthru\.date["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*name=["\']pubdate["\'][^>]*content=["\']([^"\']+)["\']',
+            r'<meta[^>]*name=["\']publish_date["\'][^>]*content=["\']([^"\']+)["\']',
+        ]
+        for pat in meta_patterns:
+            m = re.search(pat, html_text, flags=re.IGNORECASE)
+            if m:
+                raw_pub = m.group(1).strip()
+                utc_dt, _ = cls._parse_iso_or_rfc(raw_pub)
+                if utc_dt:
+                    return {
+                        "published_at": utc_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "published_at_raw": raw_pub,
+                        "date_source": "OPEN_GRAPH",
+                        "date_confidence": "HIGH"
+                    }
+
+        return None
+
+    @classmethod
+    def resolve_best_date(cls, raw_date_str: str = None, html_content: str = None) -> Dict[str, Any]:
+        """
+        Evaluates full multi-tier deterministic hierarchy and returns date provenance dictionary.
+        """
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        now_iso = now_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        # Check HTML content if available (Tier 1 & 2)
+        if html_content:
+            html_res = cls.resolve_html_dates(html_content)
+            if html_res:
+                html_res["crawled_at"] = now_iso
+                return html_res
+
+        # Check raw date string (Tier 3: RSS_PUBDATE)
+        if raw_date_str and str(raw_date_str).strip():
+            raw_clean = str(raw_date_str).strip()
+            utc_dt, has_tz = cls._parse_iso_or_rfc(raw_clean)
+            if utc_dt:
+                conf = "MEDIUM" if has_tz else "LOW"
+                return {
+                    "published_at": utc_dt.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "published_at_raw": raw_clean,
+                    "crawled_at": now_iso,
+                    "date_source": "RSS_PUBDATE",
+                    "date_confidence": conf
+                }
+
+        # Fallback to Crawl Timestamp (Tier 4)
+        return {
+            "published_at": now_iso,
+            "published_at_raw": raw_date_str or now_iso,
+            "crawled_at": now_iso,
+            "date_source": "FALLBACK_CRAWL",
+            "date_confidence": "LOW"
+        }
+
+
+# ---------------------------------------------------------------------------
 # Utility Functions
 # ---------------------------------------------------------------------------
 def parse_pub_date(raw_date: str) -> str:
     """Parses RFC-822, ISO, or string date formats into standardized YYYY-MM-DD HH:MM."""
-    if not raw_date or not raw_date.strip():
-        return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-    raw_date = raw_date.strip()
-    try:
-        dt = parsedate_to_datetime(raw_date)
-        return dt.strftime("%Y-%m-%d %H:%M")
-    except Exception:
-        pass
-    try:
-        clean_date = raw_date.replace("Z", "+00:00")
-        dt = datetime.datetime.fromisoformat(clean_date)
-        return dt.strftime("%Y-%m-%d %H:%M")
-    except Exception:
-        pass
-    return raw_date[:16] if len(raw_date) >= 16 else raw_date
+    res = DateProvenanceResolver.resolve_best_date(raw_date_str=raw_date)
+    dt_str = res.get("published_at", "")
+    if len(dt_str) >= 16:
+        return dt_str[:10] + " " + dt_str[11:16]
+    return dt_str
 
 
 def auto_generate_aliases(company: str, user_aliases: List[str] = None) -> List[str]:

@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Any, Optional
 
-from constants import logger, DEFAULT_CONFIG, parse_pub_date
+from constants import logger, DEFAULT_CONFIG, parse_pub_date, DateProvenanceResolver
 from intelligence import IntelEngine, QueryBuilder
 
 
@@ -66,8 +66,8 @@ def fetch_with_retry(url: str, user_agents: List[str], provider_name: str,
     return None
 
 
-def parse_rss_items(raw: bytes) -> List[Dict[str, str]]:
-    """Parses RSS XML feed into standardized item dicts."""
+def parse_rss_items(raw: bytes) -> List[Dict[str, Any]]:
+    """Parses RSS XML feed into standardized item dicts with date provenance."""
     items = []
     try:
         root = ET.fromstring(raw)
@@ -76,9 +76,14 @@ def parse_rss_items(raw: bytes) -> List[Dict[str, str]]:
             link = (item.findtext("link") or "").strip()
             pub_date = item.findtext("pubDate") or item.findtext("{http://purl.org/dc/elements/1.1/}date") or ""
             if title and link:
+                date_prov = DateProvenanceResolver.resolve_best_date(raw_date_str=pub_date)
                 items.append({
                     "title": title, "link": link,
                     "pubDate": pub_date,
+                    "published_at": date_prov["published_at"],
+                    "published_at_raw": date_prov["published_at_raw"],
+                    "date_source": date_prov["date_source"],
+                    "date_confidence": date_prov["date_confidence"],
                     "source": item.findtext("source") or "RSS",
                 })
     except Exception as e:
@@ -829,7 +834,11 @@ class FetcherEngine:
             data = {
                 "headline": it["title"], "source": it.get("source", provider_key),
                 "url": it["link"],
-                "published_time": pub_formatted,
+                "published_time": it.get("pubDate") or it.get("published_at_raw") or pub_formatted,
+                "published_at_raw": it.get("published_at_raw") or it.get("pubDate") or pub_formatted,
+                "published_at": it.get("published_at"),
+                "date_source": it.get("date_source"),
+                "date_confidence": it.get("date_confidence"),
                 "search_query": query,
                 "company": final_company,
                 "industry": intel["industry"], "event_category": intel["event_category"],
