@@ -49,7 +49,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "recency_window": "7d",
     "custom_start_date": "",
     "custom_end_date": "",
-    "db_path": os.path.join(APP_DIR, "news_intelligence.db"),
+    "db_path": "news_intelligence.db",
     "theme": "Dark",
     "domain_filter_enabled": False,
     "finvader_enabled": False,
@@ -418,18 +418,62 @@ KNOWN_SOURCE_DOMAINS: Dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# Config Loader / Saver
+# Dynamic DB Path & Config Loader / Saver
 # ---------------------------------------------------------------------------
+def resolve_db_path(raw_path: Optional[str] = None) -> str:
+    """
+    Dynamically resolves the SQLite database path:
+    1. Highest priority: NEWS_INTEL_DB_PATH or DB_PATH environment variables.
+    2. Configured raw_path.
+    3. Default: os.path.join(APP_DIR, "news_intelligence.db").
+
+    If raw_path is relative, it is resolved relative to APP_DIR.
+    If raw_path is an absolute path that is invalid or from a different drive/machine,
+    it falls back cleanly to the local APP_DIR location.
+    Parent directories are automatically created if they do not exist.
+    """
+    env_path = os.environ.get("NEWS_INTEL_DB_PATH") or os.environ.get("DB_PATH")
+    chosen = env_path if env_path else (raw_path or "news_intelligence.db")
+
+    if not os.path.isabs(chosen):
+        final_path = os.path.normpath(os.path.join(APP_DIR, chosen))
+    else:
+        # Check if parent directory exists or can be accessed
+        parent_dir = os.path.dirname(chosen)
+        if not parent_dir or not os.path.exists(parent_dir):
+            try:
+                os.makedirs(parent_dir, exist_ok=True)
+                final_path = os.path.normpath(chosen)
+            except Exception:
+                # Fallback to local repo app directory if drive or path does not exist
+                filename = os.path.basename(chosen) or "news_intelligence.db"
+                final_path = os.path.normpath(os.path.join(APP_DIR, filename))
+        else:
+            final_path = os.path.normpath(chosen)
+
+    parent_dir = os.path.dirname(final_path)
+    if parent_dir and not os.path.exists(parent_dir):
+        try:
+            os.makedirs(parent_dir, exist_ok=True)
+        except Exception:
+            pass
+
+    return final_path
+
+
 def load_config() -> Dict[str, Any]:
-    """Loads config from config.json, merging with defaults."""
+    """Loads config from config.json, merging with defaults and resolving dynamic db path."""
     cfg_path = os.path.join(APP_DIR, "config.json")
+    cfg = dict(DEFAULT_CONFIG)
     if os.path.exists(cfg_path):
         try:
             with open(cfg_path) as f:
-                return {**DEFAULT_CONFIG, **json.load(f)}
+                loaded = json.load(f)
+                cfg.update(loaded)
         except Exception:
             pass
-    return dict(DEFAULT_CONFIG)
+    cfg["db_path"] = resolve_db_path(cfg.get("db_path"))
+    return cfg
 
 
 def save_config(config: Dict[str, Any]):

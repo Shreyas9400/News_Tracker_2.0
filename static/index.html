@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* =========================================================================
    MUFG BANK RED CANVAS DESIGN SYSTEM (#d62427 Background & #595a5a Grey)
@@ -903,23 +904,55 @@ a.headline-link:hover { color: var(--text-accent); }
 
   <!-- ============ PORTFOLIO TAB ============ -->
   <div id="tab-portfolio" class="tab-content">
-    <div class="mgmt-header">
-      <h2>Portfolio &amp; Watchlist Manager</h2>
-      <div style="display:flex;gap:8px;">
-        <button class="btn btn-primary" onclick="bulkTogglePortfolio(1)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to active search status">✅ Select All (Active)</button>
-        <button class="btn btn-danger" onclick="bulkTogglePortfolio(0)" style="font-size:12px;padding:6px 14px;" title="Set all portfolio companies to inactive">⬜ Deselect All</button>
+    <div class="mgmt-header" style="flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <h2 style="margin:0 0 4px 0;">Portfolio &amp; Watchlist Manager</h2>
+        <div style="font-size:12px;color:var(--text-muted);">Multi-User Watchlist Architecture &bull; Corporate Credit &amp; Earnings Surveillance</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <!-- User Selection Filter -->
+        <div style="display:flex;align-items:center;gap:6px;background:var(--bg-card);padding:4px 10px;border-radius:var(--radius-xs);border:1px solid var(--border);">
+          <span style="font-size:11px;font-weight:700;color:var(--text-secondary);">👤 User View:</span>
+          <select id="portfolioUserFilter" onchange="onPortfolioUserFilterChange()" style="padding:4px 10px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:11px;font-weight:600;min-width:140px;cursor:pointer;">
+            <option value="All">👥 All Users</option>
+          </select>
+        </div>
+
+        <!-- Excel / Template Actions -->
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-secondary" onclick="downloadSampleTemplate('xlsx')" style="font-size:11px;padding:6px 12px;display:flex;align-items:center;gap:4px;" title="Download sample Excel watchlist template">
+            📥 Sample Template
+          </button>
+          <button class="btn btn-primary" onclick="openExcelImportModal()" style="font-size:11px;padding:6px 14px;display:flex;align-items:center;gap:4px;background:linear-gradient(135deg, #10B981 0%, #059669 100%);border:none;" title="Upload Excel / CSV file to batch import companies across users">
+            📤 Upload Excel / CSV
+          </button>
+        </div>
+
+        <!-- Bulk Active / Inactive -->
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-primary" onclick="bulkTogglePortfolio(1)" style="font-size:11px;padding:6px 12px;" title="Set active search status for current user view">✅ Select All (Active)</button>
+          <button class="btn btn-danger" onclick="bulkTogglePortfolio(0)" style="font-size:11px;padding:6px 12px;" title="Set inactive for current user view">⬜ Deselect All</button>
+        </div>
       </div>
     </div>
-    <div class="form-row" style="flex-wrap:wrap;gap:8px;">
-      <input type="text" id="pCompany" placeholder="Company Name" style="flex:2;min-width:160px;">
-      <input type="text" id="pTicker" placeholder="Ticker" style="flex:1;min-width:80px;">
-      <select id="pIndustrySelect" style="flex:2;min-width:180px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;"></select>
-      <input type="text" id="pCountry" placeholder="Country" value="USA" style="flex:1;min-width:80px;">
-      <input type="text" id="pAliases" placeholder="Aliases (comma separated)" style="flex:3;min-width:200px;">
-      <button class="btn btn-primary" onclick="addPortfolio()">+ Add Company</button>
+
+    <!-- Quick Add Single Company Form -->
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">➕ Add Single Watchlist Entity</div>
+      <div class="form-row" style="flex-wrap:wrap;gap:8px;">
+        <input type="text" id="pUser" placeholder="User Name *" value="Default User" style="flex:1.5;min-width:140px;" title="User / Analyst name responsible for this portfolio entity">
+        <input type="text" id="pCompany" placeholder="Company Name *" style="flex:2;min-width:160px;" title="Company Name / Entity Name (Mandatory)">
+        <input type="text" id="pTicker" placeholder="Ticker" style="flex:1;min-width:80px;" title="Ticker symbol (e.g. JPM, AAPL)">
+        <select id="pIndustrySelect" style="flex:2;min-width:170px;padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-input);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;" title="Target Industry"></select>
+        <input type="text" id="pCountry" placeholder="Country" value="USA" style="flex:1;min-width:75px;" title="Country of incorporation">
+        <input type="text" id="pAliases" placeholder="Aliases (comma separated)" style="flex:2.5;min-width:180px;" title="Alternate trading/subsidiary names">
+        <button class="btn btn-primary" onclick="addPortfolio()" style="padding:8px 16px;font-size:12px;font-weight:700;">+ Add Entity</button>
+      </div>
     </div>
+
+    <!-- Portfolio Data Table -->
     <div class="table-wrap"><table><thead><tr>
-      <th>Company</th><th>Ticker</th><th>Industry &amp; Code</th><th>Country</th><th>Aliases</th><th>Active</th><th>Actions</th>
+      <th>User</th><th>Company</th><th>Ticker</th><th>Industry &amp; Code</th><th>Country</th><th>Aliases</th><th>Active</th><th>Actions</th>
     </tr></thead><tbody id="portfolioBody"></tbody></table></div>
   </div>
 
@@ -1206,6 +1239,7 @@ a.headline-link:hover { color: var(--text-accent); }
     <h3>✏️ Edit Portfolio Item</h3>
     <input type="hidden" id="editPId">
     <div class="form-row" style="flex-direction:column;gap:12px;">
+      <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">User / Analyst Name</label><input type="text" id="editPUser" placeholder="e.g. Default User, John Doe" style="width:100%;"></div>
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Company Name</label><input type="text" id="editPCompany" style="width:100%;"></div>
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Ticker</label><input type="text" id="editPTicker" style="width:100%;"></div>
       <div>
@@ -1216,6 +1250,64 @@ a.headline-link:hover { color: var(--text-accent); }
       <div><label style="font-size:12px;color:var(--text-secondary);display:block;margin-bottom:4px;">Aliases (comma separated)</label><input type="text" id="editPAliases" style="width:100%;"></div>
     </div>
     <div class="modal-actions"><button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button><button class="btn btn-primary" onclick="saveEditPortfolio()">💾 Save Changes</button></div>
+  </div>
+</div>
+
+<!-- EXCEL / CSV WATCHLIST BULK IMPORT MODAL -->
+<div id="excelImportModal" class="modal-overlay" style="display:none;">
+  <div class="modal" style="max-width:760px;width:95%;max-height:85vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3 style="margin:0;display:flex;align-items:center;gap:8px;">📊 Bulk Watchlist Upload (Excel / CSV)</h3>
+      <button class="btn btn-secondary" onclick="closeExcelImportModal()" style="padding:4px 10px;font-size:11px;">✕ Close</button>
+    </div>
+
+    <!-- Dropzone -->
+    <div id="excelDropzone" style="border:2px dashed var(--border-bright);border-radius:var(--radius);padding:24px;text-align:center;background:var(--bg-secondary);cursor:pointer;transition:all 0.2s;" onclick="document.getElementById('excelFileInput').click()" ondragover="event.preventDefault();this.style.borderColor='var(--accent-blue)';" ondragleave="this.style.borderColor='var(--border-bright)';" ondrop="handleExcelDrop(event)">
+      <div style="font-size:32px;margin-bottom:6px;">📁</div>
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Click to select or drag &amp; drop an Excel (.xlsx, .xls) or CSV file</div>
+      <div style="font-size:11px;color:var(--text-muted);">Required Columns: <strong style="color:var(--accent-yellow);">User Name *</strong> and <strong style="color:var(--accent-yellow);">Entity Name *</strong> &bull; Optional: Ticker, Industry, Country, Aliases</div>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleExcelFileInput(this.files)">
+    </div>
+
+    <!-- Quick action to download template -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:var(--text-secondary);flex-wrap:wrap;gap:8px;">
+      <span>Need the exact format pre-formatted?</span>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="downloadSampleTemplate('xlsx')" style="font-size:11px;padding:3px 10px;">📥 Download Excel Template (.xlsx)</button>
+        <button class="btn btn-secondary" onclick="downloadSampleTemplate('csv')" style="font-size:11px;padding:3px 10px;">📄 Download CSV Template (.csv)</button>
+      </div>
+    </div>
+
+    <!-- Live Preview Section -->
+    <div id="excelPreviewSection" style="display:none;margin-top:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);" id="excelPreviewSummary">Parsed Watchlist Preview</div>
+        <div id="excelStatsBadges" style="display:flex;gap:6px;font-size:11px;"></div>
+      </div>
+
+      <div class="table-wrap" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);">
+        <table style="width:100%;font-size:11px;">
+          <thead>
+            <tr>
+              <th style="width:30px;">#</th>
+              <th>Status</th>
+              <th>User Name *</th>
+              <th>Entity Name *</th>
+              <th>Ticker</th>
+              <th>Industry</th>
+              <th>Country</th>
+              <th>Aliases</th>
+            </tr>
+          </thead>
+          <tbody id="excelPreviewBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn btn-secondary" onclick="closeExcelImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="btnExecuteImport" onclick="executeExcelImport()" style="display:none;background:linear-gradient(135deg, #10B981 0%, #059669 100%);border:none;">💾 Confirm &amp; Import Watchlist</button>
+    </div>
   </div>
 </div>
 
@@ -2128,11 +2220,48 @@ async function triggerEarningsSweep() {
 }
 
 // =========================================================================
-// PORTFOLIO MANAGEMENT
+// MULTI-USER PORTFOLIO & EXCEL WATCHLIST MANAGEMENT (3-TIER ARCHITECTURE)
 // =========================================================================
+let currentPortfolioUser = 'All';
+let registeredUsersList = [];
+let parsedExcelRows = [];
+
+async function loadPortfolioUsers() {
+  try {
+    const users = await api('/api/portfolio/users');
+    registeredUsersList = Array.isArray(users) ? users : [];
+    const userSel = document.getElementById('portfolioUserFilter');
+    if (!userSel) return;
+    const prevVal = userSel.value || currentPortfolioUser;
+    
+    let html = '<option value="All">👥 All Users</option>';
+    registeredUsersList.forEach(u => {
+      const uName = typeof u === 'object' ? u.name : u;
+      const uCount = typeof u === 'object' && u.entity_count !== undefined ? ` (${u.entity_count})` : '';
+      html += `<option value="${esc(uName)}" ${uName === prevVal ? 'selected' : ''}>👤 ${esc(uName)}${uCount}</option>`;
+    });
+    userSel.innerHTML = html;
+    if (prevVal && registeredUsersList.some(u => (typeof u === 'object' ? u.name : u) === prevVal)) {
+      userSel.value = prevVal;
+    }
+  } catch(e) {
+    console.error("Error loading portfolio users:", e);
+  }
+}
+
+function onPortfolioUserFilterChange() {
+  const userSel = document.getElementById('portfolioUserFilter');
+  currentPortfolioUser = userSel ? userSel.value : 'All';
+  const pUserInp = document.getElementById('pUser');
+  if (pUserInp && currentPortfolioUser !== 'All') {
+    pUserInp.value = currentPortfolioUser;
+  }
+  loadPortfolio();
+}
+
 async function loadPortfolio() {
   const [pData, indList] = await Promise.all([
-    api('/api/portfolio'),
+    api('/api/portfolio' + (currentPortfolioUser !== 'All' ? `?user=${encodeURIComponent(currentPortfolioUser)}` : '')),
     getCachedIndustries()
   ]);
   portfolioData = pData || [];
@@ -2143,13 +2272,24 @@ async function loadPortfolio() {
     pIndSel.innerHTML = '<option value="">-- Select Industry --</option>' + (indList||[]).map(i => `<option value="${esc(i.id)}" ${i.status==='INACTIVE'?'disabled':''}>${esc(i.name)} (${esc(i.id)})</option>`).join('');
   }
 
+  // Populate users filter dropdown
+  loadPortfolioUsers();
+
   const pBody = document.getElementById('portfolioBody');
   if (!portfolioData || !portfolioData.length) {
-    pBody.innerHTML = '<tr><td colspan="7" class="empty-state">No companies in portfolio. Add your first entity above!</td></tr>';
+    const emptyMsg = currentPortfolioUser !== 'All' 
+      ? `No portfolio companies found for user "${esc(currentPortfolioUser)}". Add entities or upload an Excel watchlist above!`
+      : 'No companies in portfolio. Add your first entity or upload an Excel watchlist above!';
+    pBody.innerHTML = `<tr><td colspan="8" class="empty-state">${emptyMsg}</td></tr>`;
     return;
   }
 
   pBody.innerHTML = portfolioData.map(r => `<tr>
+    <td>
+      <span class="tag-badge" style="font-size:11px;font-weight:700;background:rgba(56,189,248,0.12);color:var(--accent-blue);border:1px solid rgba(56,189,248,0.25);padding:2px 8px;border-radius:10px;white-space:nowrap;">
+        👤 ${esc(r.user_name || 'Default User')}
+      </span>
+    </td>
     <td><strong style="color:var(--text-primary);">${esc(r.company)}</strong></td>
     <td><span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--accent-yellow);">${esc(r.ticker||'—')}</span></td>
     <td>
@@ -2170,6 +2310,7 @@ async function openEditModal(id) {
   const i = portfolioData.find(p => p.id === id);
   if (!i) return;
   document.getElementById('editPId').value = i.id;
+  document.getElementById('editPUser').value = i.user_name || 'Default User';
   document.getElementById('editPCompany').value = i.company;
   document.getElementById('editPTicker').value = i.ticker || '';
   document.getElementById('editPCountry').value = i.country || 'USA';
@@ -2192,9 +2333,17 @@ async function saveEditPortfolio() {
   const indSel = document.getElementById('editPIndustrySelect');
   const indId = indSel ? indSel.value : '';
   const indName = indSel && indSel.selectedIndex >= 0 ? indSel.options[indSel.selectedIndex].text.split(' (')[0] : '';
+  const userName = document.getElementById('editPUser').value.trim() || 'Default User';
+  const company = document.getElementById('editPCompany').value.trim();
+
+  if (!company) {
+    alert('Company / Entity Name is required.');
+    return;
+  }
 
   await api(`/api/portfolio/${id}/update`, 'POST', {
-    company: document.getElementById('editPCompany').value.trim(),
+    user_name: userName,
+    company: company,
     ticker: document.getElementById('editPTicker').value.trim(),
     industry: indName,
     industry_id: indId,
@@ -2209,12 +2358,17 @@ async function saveEditPortfolio() {
 
 async function addPortfolio() {
   const c = document.getElementById('pCompany').value.trim();
-  if (!c) return;
+  if (!c) {
+    alert('Please enter a Company / Entity Name.');
+    return;
+  }
+  const u = document.getElementById('pUser').value.trim() || 'Default User';
   const indSel = document.getElementById('pIndustrySelect');
   const indId = indSel ? indSel.value : '';
   const indName = indSel && indSel.selectedIndex >= 0 ? indSel.options[indSel.selectedIndex].text.split(' (')[0] : '';
 
-  await api('/api/portfolio', 'POST', {
+  const res = await api('/api/portfolio', 'POST', {
+    user_name: u,
     company: c,
     ticker: document.getElementById('pTicker').value.trim(),
     industry: indName,
@@ -2222,6 +2376,12 @@ async function addPortfolio() {
     country: document.getElementById('pCountry').value.trim(),
     aliases: document.getElementById('pAliases').value.split(',').map(s => s.trim()).filter(Boolean)
   });
+
+  if (res && res.ok === false) {
+    alert(`Entity "${c}" already exists for user "${u}".`);
+    return;
+  }
+
   ['pCompany', 'pTicker', 'pAliases'].forEach(id => document.getElementById(id).value = '');
   loadPortfolio();
   loadIndustries();
@@ -2244,10 +2404,341 @@ async function togglePortfolio(id, v) {
 }
 
 async function bulkTogglePortfolio(enabled) {
-  await api('/api/portfolio/bulk_toggle', 'POST', { enabled: enabled });
+  await api('/api/portfolio/bulk_toggle', 'POST', { enabled: enabled, user_name: currentPortfolioUser });
   loadPortfolio();
   loadIndustries();
   loadQueryInspector();
+}
+
+// -------------------------------------------------------------------------
+// EXCEL / CSV TEMPLATE GENERATION & IMPORT ENGINE
+// -------------------------------------------------------------------------
+function downloadSampleTemplate(format = 'xlsx') {
+  const sampleData = [
+    { "User Name": "Sarah Connor", "Entity Name": "JPMorgan Chase", "Ticker": "JPM", "Industry": "Commercial Banking", "Country": "USA", "Aliases": "JPMorgan, Chase Bank" },
+    { "User Name": "Sarah Connor", "Entity Name": "Bank of America", "Ticker": "BAC", "Industry": "Commercial Banking", "Country": "USA", "Aliases": "BofA, Merrill Lynch" },
+    { "User Name": "Michael Scott", "Entity Name": "Ares Capital Corp", "Ticker": "ARCC", "Industry": "Private Credit & BDCs", "Country": "USA", "Aliases": "Ares, ARCC BDC" },
+    { "User Name": "Michael Scott", "Entity Name": "Chevron Corporation", "Ticker": "CVX", "Industry": "Energy & Power", "Country": "USA", "Aliases": "Chevron, CVX" },
+    { "User Name": "David Wallace", "Entity Name": "Verizon Communications", "Ticker": "VZ", "Industry": "Telecom & Media", "Country": "USA", "Aliases": "Verizon, VZ" },
+    { "User Name": "Default User", "Entity Name": "Microsoft Corporation", "Ticker": "MSFT", "Industry": "Technology & Software", "Country": "USA", "Aliases": "Microsoft, MSFT" }
+  ];
+
+  if (format === 'xlsx' && typeof XLSX !== 'undefined') {
+    const ws = XLSX.utils.json_to_sheet(sampleData, {
+      header: ["User Name", "Entity Name", "Ticker", "Industry", "Country", "Aliases"]
+    });
+    // Set nice column widths
+    ws['!cols'] = [
+      { wch: 18 }, { wch: 28 }, { wch: 10 }, { wch: 24 }, { wch: 10 }, { wch: 32 }
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Portfolio_Watchlist");
+    XLSX.writeFile(wb, "mufg_portfolio_watchlist_template.xlsx");
+  } else {
+    // Generate CSV fallback
+    const headers = ["User Name", "Entity Name", "Ticker", "Industry", "Country", "Aliases"];
+    const csvRows = [headers.join(",")];
+    sampleData.forEach(row => {
+      csvRows.push([
+        `"${row["User Name"]}"`,
+        `"${row["Entity Name"]}"`,
+        `"${row["Ticker"]}"`,
+        `"${row["Industry"]}"`,
+        `"${row["Country"]}"`,
+        `"${row["Aliases"]}"`
+      ].join(","));
+    });
+    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "mufg_portfolio_watchlist_template.csv";
+    link.click();
+  }
+}
+
+function openExcelImportModal() {
+  parsedExcelRows = [];
+  document.getElementById('excelFileInput').value = '';
+  document.getElementById('excelPreviewSection').style.display = 'none';
+  document.getElementById('btnExecuteImport').style.display = 'none';
+  document.getElementById('excelImportModal').style.display = 'flex';
+}
+
+function closeExcelImportModal() {
+  document.getElementById('excelImportModal').style.display = 'none';
+}
+
+function handleExcelDrop(e) {
+  e.preventDefault();
+  document.getElementById('excelDropzone').style.borderColor = 'var(--border-bright)';
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+    handleExcelFileInput(e.dataTransfer.files);
+  }
+}
+
+function handleExcelFileInput(files) {
+  if (!files || !files.length) return;
+  const file = files[0];
+  const filename = file.name;
+  const isCsv = filename.toLowerCase().endsWith('.csv');
+
+  const reader = new FileReader();
+
+  if (isCsv) {
+    reader.onload = function(e) {
+      try {
+        const text = e.target.result;
+        parseCSVText(text);
+      } catch(err) {
+        alert("Error reading CSV file: " + err.message);
+      }
+    };
+    reader.readAsText(file);
+  } else {
+    reader.onload = function(e) {
+      try {
+        if (typeof XLSX === 'undefined') {
+          alert("Excel parsing library is still loading or unavailable. Please use CSV format or check internet connection.");
+          return;
+        }
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+        processParsedRows(rawJson, filename);
+      } catch(err) {
+        alert("Error parsing Excel file: " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseCSVText(text) {
+  const lines = text.split(/\r\n|\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) {
+    alert("CSV file must contain a header row and at least one data row.");
+    return;
+  }
+  // Simple CSV parser supporting quotes
+  function parseCSVLine(line) {
+    const result = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { inQuotes = !inQuotes; }
+      else if (c === ',' && !inQuotes) { result.push(cur.trim()); cur = ''; }
+      else { cur += c; }
+    }
+    result.push(cur.trim());
+    return result;
+  }
+
+  const headers = parseCSVLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = parseCSVLine(lines[i]);
+    const rowObj = {};
+    headers.forEach((h, idx) => {
+      rowObj[h] = values[idx] || "";
+    });
+    rows.push(rowObj);
+  }
+  processParsedRows(rows, "CSV Upload");
+}
+
+function normalizeKey(key) {
+  return String(key).toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function processParsedRows(rawRows, filename) {
+  if (!rawRows || !rawRows.length) {
+    alert("No rows found in file.");
+    return;
+  }
+
+  parsedExcelRows = [];
+  const uniqueUsers = new Set();
+  const seenInUploadMap = new Map(); // key -> first seen row number
+  let newCount = 0;
+  let updateCount = 0;
+  let inUploadDupCount = 0;
+  let invalidCount = 0;
+
+  // Build existing DB portfolio lookup for instant comparison
+  const existingDbLookup = new Set();
+  (portfolioData || []).forEach(p => {
+    const k = `${(p.user_name || 'Default User').trim().toLowerCase()}::${(p.company || '').trim().toLowerCase()}`;
+    existingDbLookup.add(k);
+  });
+
+  rawRows.forEach((raw, idx) => {
+    const rowNum = idx + 1;
+    let user = "", company = "", ticker = "", industry = "", country = "USA", aliases = "";
+
+    // Dynamic fuzzy column header detection
+    Object.keys(raw).forEach(k => {
+      const norm = normalizeKey(k);
+      const val = String(raw[k] || "").trim();
+
+      if (['username', 'user', 'analyst', 'owner', 'portfolioowner'].includes(norm)) {
+        user = val;
+      } else if (['entityname', 'entity', 'companyname', 'company', 'name', 'firm', 'obligor'].includes(norm)) {
+        company = val;
+      } else if (['ticker', 'symbol', 'code'].includes(norm)) {
+        ticker = val;
+      } else if (['industry', 'sector', 'industrycode'].includes(norm)) {
+        industry = val;
+      } else if (['country', 'nation', 'region'].includes(norm)) {
+        country = val || "USA";
+      } else if (['aliases', 'alias', 'alternatenames', 'subsidiaries'].includes(norm)) {
+        aliases = val;
+      }
+    });
+
+    // Fallback: If no user column found, default to selected user or 'Default User'
+    if (!user) {
+      user = (currentPortfolioUser !== 'All' ? currentPortfolioUser : 'Default User');
+    }
+
+    const isValid = Boolean(company && user);
+    const itemKey = `${user.toLowerCase()}::${company.toLowerCase()}`;
+
+    let statusType = 'VALID_NEW';
+    let statusBadge = '<span style="color:var(--accent-green);font-weight:700;">✨ New Entity</span>';
+    let errorMsg = '';
+
+    if (!company) {
+      statusType = 'INVALID';
+      errorMsg = 'Missing Entity Name *';
+      statusBadge = `<span style="color:var(--accent-red-semantic);font-weight:700;">❌ ${errorMsg}</span>`;
+      invalidCount++;
+    } else if (!user) {
+      statusType = 'INVALID';
+      errorMsg = 'Missing User Name *';
+      statusBadge = `<span style="color:var(--accent-red-semantic);font-weight:700;">❌ ${errorMsg}</span>`;
+      invalidCount++;
+    } else if (seenInUploadMap.has(itemKey)) {
+      statusType = 'DUP_UPLOAD';
+      const firstRow = seenInUploadMap.get(itemKey);
+      errorMsg = `Duplicate in upload (matches Row ${firstRow})`;
+      statusBadge = `<span style="color:var(--accent-yellow);font-weight:700;" title="${esc(errorMsg)}">⚠️ Duplicate in Upload (Row ${firstRow})</span>`;
+      inUploadDupCount++;
+      uniqueUsers.add(user);
+    } else if (existingDbLookup.has(itemKey)) {
+      statusType = 'EXISTING_UPDATE';
+      statusBadge = '<span style="color:var(--accent-blue);font-weight:700;">🔄 In Watchlist (Update)</span>';
+      updateCount++;
+      uniqueUsers.add(user);
+      seenInUploadMap.set(itemKey, rowNum);
+    } else {
+      statusType = 'VALID_NEW';
+      statusBadge = '<span style="color:var(--accent-green);font-weight:700;">✨ New Entity</span>';
+      newCount++;
+      uniqueUsers.add(user);
+      seenInUploadMap.set(itemKey, rowNum);
+    }
+
+    parsedExcelRows.push({
+      rowNum: rowNum,
+      user_name: user,
+      company: company,
+      ticker: ticker,
+      industry: industry,
+      country: country,
+      aliases: aliases,
+      isValid: isValid,
+      statusType: statusType,
+      statusBadge: statusBadge,
+      errorMsg: errorMsg
+    });
+  });
+
+  // Render preview table
+  const previewBody = document.getElementById('excelPreviewBody');
+  previewBody.innerHTML = parsedExcelRows.slice(0, 50).map(r => `
+    <tr style="${!r.isValid ? 'background:rgba(239,68,68,0.12);' : (r.statusType === 'DUP_UPLOAD' ? 'background:rgba(234,179,8,0.1);' : '')}">
+      <td style="color:var(--text-muted);font-family:var(--font-mono);">${r.rowNum}</td>
+      <td>${r.statusBadge}</td>
+      <td><strong style="color:var(--accent-blue);">👤 ${esc(r.user_name || '—')}</strong></td>
+      <td><strong style="color:var(--text-primary);">${esc(r.company || '—')}</strong></td>
+      <td style="font-family:var(--font-mono);color:var(--accent-yellow);">${esc(r.ticker || '—')}</td>
+      <td>${esc(r.industry || '—')}</td>
+      <td>${esc(r.country || 'USA')}</td>
+      <td style="color:var(--text-secondary);font-size:10px;">${esc(r.aliases || '—')}</td>
+    </tr>
+  `).join('');
+
+  if (parsedExcelRows.length > 50) {
+    previewBody.innerHTML += `<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:8px;font-style:italic;">... and ${parsedExcelRows.length - 50} more rows parsed</td></tr>`;
+  }
+
+  // Render summary stats badges
+  const totalValid = newCount + updateCount + inUploadDupCount;
+  const badgesHtml = `
+    <span class="tag-badge" style="background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border);">Total Rows: ${parsedExcelRows.length}</span>
+    <span class="tag-badge" style="background:rgba(16,185,129,0.2);color:var(--accent-green);border:1px solid rgba(16,185,129,0.4);">✨ New: ${newCount}</span>
+    <span class="tag-badge" style="background:rgba(56,189,248,0.2);color:var(--accent-blue);border:1px solid rgba(56,189,248,0.4);">🔄 Updates: ${updateCount}</span>
+    ${inUploadDupCount > 0 ? `<span class="tag-badge" style="background:rgba(234,179,8,0.2);color:var(--accent-yellow);border:1px solid rgba(234,179,8,0.4);">⚠️ File Duplicates: ${inUploadDupCount}</span>` : ''}
+    ${invalidCount > 0 ? `<span class="tag-badge" style="background:rgba(239,68,68,0.2);color:var(--accent-red-semantic);border:1px solid rgba(239,68,68,0.4);">❌ Errors: ${invalidCount}</span>` : ''}
+    <span class="tag-badge" style="background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.4);">👥 Users: ${uniqueUsers.size}</span>
+  `;
+  document.getElementById('excelStatsBadges').innerHTML = badgesHtml;
+  document.getElementById('excelPreviewSummary').textContent = `Parsed: "${esc(filename)}" (${totalValid} valid operations across ${uniqueUsers.size} users)`;
+
+  document.getElementById('excelPreviewSection').style.display = 'block';
+
+  const btnExec = document.getElementById('btnExecuteImport');
+  if (totalValid > 0 && invalidCount === 0) {
+    btnExec.textContent = `💾 Confirm & Import (${totalValid} Entities)`;
+    btnExec.style.display = 'inline-block';
+  } else if (totalValid > 0 && invalidCount > 0) {
+    btnExec.textContent = `⚠️ Import Valid Only (${totalValid} of ${parsedExcelRows.length})`;
+    btnExec.style.display = 'inline-block';
+  } else {
+    btnExec.style.display = 'none';
+  }
+}
+
+async function executeExcelImport() {
+  const validItems = parsedExcelRows.filter(r => r.isValid).map(r => ({
+    user_name: r.user_name,
+    company: r.company,
+    ticker: r.ticker,
+    industry: r.industry,
+    country: r.country,
+    aliases: r.aliases
+  }));
+
+  if (!validItems.length) {
+    alert("No valid entities to import.");
+    return;
+  }
+
+  const btn = document.getElementById('btnExecuteImport');
+  btn.disabled = true;
+  btn.textContent = '⏳ Importing Watchlist...';
+
+  try {
+    const res = await api('/api/portfolio/import', 'POST', { items: validItems, atomic: true });
+    if (res && res.ok) {
+      alert(`🎉 Watchlist Import Successful!\n\n• Added New: ${res.added} entities\n• Updated Existing: ${res.updated} entities\n• Total Processed: ${res.total}`);
+      closeExcelImportModal();
+      await loadPortfolioUsers();
+      await loadPortfolio();
+      await loadIndustries();
+      await loadQueryInspector();
+    } else {
+      alert(`Import completed with warnings or errors:\n${(res.errors || [res.message || 'Validation failed']).join('\n')}`);
+      closeExcelImportModal();
+      await loadPortfolio();
+    }
+  } catch(err) {
+    alert("Error executing import: " + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function bulkToggleDomains(enabled) {

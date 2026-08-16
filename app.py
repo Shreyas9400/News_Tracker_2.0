@@ -176,7 +176,12 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # --- CRUD Lists ---
         elif path == "/api/portfolio":
-            self._json(self.server.app_db.get_all_portfolio())
+            user_id = qs.get("user_id", [None])[0]
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.get_all_portfolio(user_id=user_id, user_name=user_name))
+
+        elif path == "/api/portfolio/users":
+            self._json(self.server.app_db.get_users())
 
         elif path == "/api/industries":
             self._json(self.server.app_db.get_all_industries())
@@ -322,7 +327,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             ok = self.server.app_db.add_portfolio(
                 body.get("company", ""), body.get("ticker", ""),
                 body.get("industry", ""), body.get("country", ""),
-                body.get("aliases", []), industry_id=body.get("industry_id"))
+                body.get("aliases", []), industry_id=body.get("industry_id"),
+                user_name=body.get("user_name", "Default User"),
+                user_id=body.get("user_id"))
             self._json({"ok": ok})
 
         elif path.startswith("/api/portfolio/") and path.endswith("/update"):
@@ -330,12 +337,23 @@ class RequestHandler(BaseHTTPRequestHandler):
             ok = self.server.app_db.update_portfolio(
                 pid, body.get("company", ""), body.get("ticker", ""),
                 body.get("industry", ""), body.get("country", ""),
-                body.get("aliases", []), industry_id=body.get("industry_id"))
+                body.get("aliases", []), industry_id=body.get("industry_id"),
+                user_name=body.get("user_name", "Default User"),
+                user_id=body.get("user_id"))
             self._json({"ok": ok})
 
         elif path == "/api/portfolio/bulk_toggle":
-            self.server.app_db.bulk_toggle_portfolio(body.get("enabled", 1))
+            self.server.app_db.bulk_toggle_portfolio(
+                body.get("enabled", 1),
+                user_id=body.get("user_id"),
+                user_name=body.get("user_name"))
             self._json({"ok": True})
+
+        elif path == "/api/portfolio/import":
+            items = body.get("items", [])
+            atomic = body.get("atomic", True)
+            res = self.server.app_db.bulk_import_portfolio(items, atomic=atomic)
+            self._json(res)
 
         elif path.startswith("/api/portfolio/") and path.endswith("/toggle"):
             pid = int(path.split("/")[3])

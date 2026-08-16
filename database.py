@@ -18,7 +18,7 @@ from typing import List, Dict, Tuple, Any, Optional
 from constants import (
     logger, DEFAULT_PORTFOLIO, DEFAULT_INDUSTRIES, DEFAULT_DOMAINS,
     DEFAULT_QUERY_CATEGORIES, DEFAULT_KEYWORDS,
-    parse_pub_date, auto_generate_aliases, extract_domain,
+    parse_pub_date, auto_generate_aliases, extract_domain, resolve_db_path,
 )
 
 
@@ -26,7 +26,7 @@ class DatabaseManager:
     """Thread-safe SQLite database manager with mutex lock."""
 
     def __init__(self, db_path: str):
-        self.db_path = db_path
+        self.db_path = resolve_db_path(db_path)
         self._local = threading.local()
         self._write_lock = threading.Lock()
         self._init_schema()
@@ -51,190 +51,290 @@ class DatabaseManager:
 
     def _init_schema(self):
         c = self._conn()
-        c.executescript("""
-            CREATE TABLE IF NOT EXISTS headlines (
-                id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                headline        TEXT    NOT NULL,
-                source          TEXT,
-                url             TEXT    UNIQUE,
-                canonical_url   TEXT,
-                published_time  TEXT,
-                search_query    TEXT,
-                company         TEXT,
-                industry        TEXT,
-                event_category  TEXT,
-                sentiment       TEXT,
-                user_sentiment  TEXT    NULL,
-                relevance_score REAL,
-                news_volume_status TEXT,
-                providers_json  TEXT,
-                domain_name     TEXT,
-                is_starred      INTEGER DEFAULT 0,
-                review_status   INTEGER DEFAULT 0,
-                reviewed_at     DATETIME NULL,
-                notification_sent INTEGER DEFAULT 0,
-                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS portfolio (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                company_name TEXT UNIQUE NOT NULL,
-                ticker       TEXT,
-                industry     TEXT,
-                industry_id  TEXT,
-                country      TEXT,
-                aliases_json TEXT,
-                enabled      INTEGER DEFAULT 1
-            );
-            CREATE TABLE IF NOT EXISTS query_categories (
-                id               INTEGER PRIMARY KEY AUTOINCREMENT,
-                name             TEXT NOT NULL,
-                keywords_json    TEXT NOT NULL,
-                scope_type       TEXT NOT NULL DEFAULT 'UNIVERSAL',
-                industry_id      TEXT NULL,
-                company_id       INTEGER NULL,
-                priority         INTEGER DEFAULT 70,
-                target_dimension TEXT DEFAULT 'Earnings / Cash Flow',
-                version          INTEGER DEFAULT 1,
-                enabled          INTEGER DEFAULT 1,
-                created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS extracted_keywords (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                word       TEXT UNIQUE NOT NULL,
-                category   TEXT NOT NULL,
-                frequency  INTEGER DEFAULT 1,
-                last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS industries (
-                id           TEXT PRIMARY KEY,
-                name         TEXT NOT NULL,
-                status       TEXT DEFAULT 'ACTIVE',
-                risk_profile TEXT DEFAULT 'STANDARD_CORP',
-                created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS keywords (
-                id       INTEGER PRIMARY KEY AUTOINCREMENT,
-                word     TEXT UNIQUE NOT NULL,
-                category TEXT DEFAULT 'general',
-                enabled  INTEGER DEFAULT 1
-            );
-            CREATE TABLE IF NOT EXISTS domains (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                domain_name TEXT UNIQUE NOT NULL,
-                enabled     INTEGER DEFAULT 1
-            );
-            CREATE TABLE IF NOT EXISTS website_visibility (
-                id          INTEGER PRIMARY KEY AUTOINCREMENT,
-                domain_name TEXT UNIQUE NOT NULL,
-                is_visible  INTEGER DEFAULT 1
-            );
-            CREATE TABLE IF NOT EXISTS earnings_calendar (
-                id                      INTEGER PRIMARY KEY AUTOINCREMENT,
-                company_name            TEXT NOT NULL,
-                ticker                  TEXT,
-                quarter                 TEXT NOT NULL,
-                reporting_date          DATE,
-                conf_call_time          TEXT,
-                timezone                TEXT DEFAULT 'ET',
-                webcast_url             TEXT,
-                status                  TEXT DEFAULT 'ESTIMATED',
-                date_source             TEXT DEFAULT 'HISTORICAL_PATTERN',
-                source_url              TEXT,
-                source_headline         TEXT,
-                reporting_date_precision TEXT DEFAULT 'EXACT',
-                reporting_time_precision TEXT DEFAULT 'UNKNOWN',
-                confidence              REAL DEFAULT 0.75,
-                created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(company_name, quarter)
-            );
-            CREATE TABLE IF NOT EXISTS earnings_results (
-                id                INTEGER PRIMARY KEY AUTOINCREMENT,
-                company_name      TEXT NOT NULL,
-                quarter           TEXT NOT NULL,
-                nav_per_share     REAL,
-                nav_prior         REAL,
-                nii_per_share     REAL,
-                nii_prior         REAL,
-                dividend_regular  REAL,
-                dividend_special  REAL,
-                non_accrual_pct   REAL,
-                non_accrual_prior REAL,
-                reported_at       DATE,
-                source_url        TEXT,
-                source_headline   TEXT,
-                created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(company_name, quarter)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS schema_migrations (
+                version     INTEGER PRIMARY KEY,
+                description TEXT NOT NULL,
+                applied_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        c.commit()
+        self._run_migrations(c)
+        self._seed(c)
 
-        # Dynamic auto-migration for existing databases
-        cols_h = [r["name"] for r in c.execute("PRAGMA table_info(headlines)").fetchall()]
-        migrations_h = {
-            "is_starred": "ALTER TABLE headlines ADD COLUMN is_starred INTEGER DEFAULT 0",
-            "review_status": "ALTER TABLE headlines ADD COLUMN review_status INTEGER DEFAULT 0",
-            "reviewed_at": "ALTER TABLE headlines ADD COLUMN reviewed_at DATETIME NULL",
-            "notification_sent": "ALTER TABLE headlines ADD COLUMN notification_sent INTEGER DEFAULT 0",
-            "user_sentiment": "ALTER TABLE headlines ADD COLUMN user_sentiment TEXT NULL",
-            "domain_name": "ALTER TABLE headlines ADD COLUMN domain_name TEXT",
-            "credit_risk": "ALTER TABLE headlines ADD COLUMN credit_risk TEXT DEFAULT 'NEUTRAL'",
-            "key_risk_signal": "ALTER TABLE headlines ADD COLUMN key_risk_signal TEXT DEFAULT 'Routine News'",
-            "baseline_vader_score": "ALTER TABLE headlines ADD COLUMN baseline_vader_score REAL DEFAULT 0.0",
-            "credit_risk_matrix_json": "ALTER TABLE headlines ADD COLUMN credit_risk_matrix_json TEXT NULL",
-        }
-        for col, sql in migrations_h.items():
-            if col not in cols_h:
-                c.execute(sql)
+    def _run_migrations(self, c: sqlite3.Connection):
+        with self._write_lock:
+            applied_rows = c.execute("SELECT version FROM schema_migrations").fetchall()
+            applied_versions = {r["version"] for r in applied_rows}
 
-        # Dynamic migration for portfolio
-        cols_p = [r["name"] for r in c.execute("PRAGMA table_info(portfolio)").fetchall()]
-        if "industry_id" not in cols_p:
-            c.execute("ALTER TABLE portfolio ADD COLUMN industry_id TEXT NULL")
-
-        # Dynamic migration for query_categories
-        cols_qc = [r["name"] for r in c.execute("PRAGMA table_info(query_categories)").fetchall()]
-        migrations_qc = {
-            "scope_type": "ALTER TABLE query_categories ADD COLUMN scope_type TEXT DEFAULT 'UNIVERSAL'",
-            "industry_id": "ALTER TABLE query_categories ADD COLUMN industry_id TEXT NULL",
-            "company_id": "ALTER TABLE query_categories ADD COLUMN company_id INTEGER NULL",
-            "priority": "ALTER TABLE query_categories ADD COLUMN priority INTEGER DEFAULT 70",
-            "target_dimension": "ALTER TABLE query_categories ADD COLUMN target_dimension TEXT DEFAULT 'Earnings / Cash Flow'",
-            "version": "ALTER TABLE query_categories ADD COLUMN version INTEGER DEFAULT 1",
-            "created_at": "ALTER TABLE query_categories ADD COLUMN created_at TIMESTAMP NULL",
-            "updated_at": "ALTER TABLE query_categories ADD COLUMN updated_at TIMESTAMP NULL",
-        }
-        for col, sql in migrations_qc.items():
-            if col not in cols_qc:
-                c.execute(sql)
-
-        # Dynamic migration for industries (if previously created with integer id)
-        cols_ind = [r["name"] for r in c.execute("PRAGMA table_info(industries)").fetchall()]
-        if "status" not in cols_ind:
-            # Check if industries has TEXT id or INTEGER id
-            id_type = next((r["type"] for r in c.execute("PRAGMA table_info(industries)").fetchall() if r["name"] == "id"), "")
-            if "INT" in id_type.upper():
-                # Re-create industries table with TEXT primary key
-                c.execute("DROP TABLE IF EXISTS industries")
-                c.execute("""
-                    CREATE TABLE industries (
+            # ---------------------------------------------------------------
+            # Migration v1: Baseline Core Tables
+            # ---------------------------------------------------------------
+            if 1 not in applied_versions:
+                logger.info("Applying schema migration v1: Baseline Core Schema...")
+                c.executescript("""
+                    CREATE TABLE IF NOT EXISTS headlines (
+                        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                        headline        TEXT    NOT NULL,
+                        source          TEXT,
+                        url             TEXT    UNIQUE,
+                        canonical_url   TEXT,
+                        published_time  TEXT,
+                        search_query    TEXT,
+                        company         TEXT,
+                        industry        TEXT,
+                        event_category  TEXT,
+                        sentiment       TEXT,
+                        user_sentiment  TEXT    NULL,
+                        relevance_score REAL,
+                        news_volume_status TEXT,
+                        providers_json  TEXT,
+                        domain_name     TEXT,
+                        is_starred      INTEGER DEFAULT 0,
+                        review_status   INTEGER DEFAULT 0,
+                        reviewed_at     DATETIME NULL,
+                        notification_sent INTEGER DEFAULT 0,
+                        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE TABLE IF NOT EXISTS query_categories (
+                        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name             TEXT NOT NULL,
+                        keywords_json    TEXT NOT NULL,
+                        scope_type       TEXT NOT NULL DEFAULT 'UNIVERSAL',
+                        industry_id      TEXT NULL,
+                        company_id       INTEGER NULL,
+                        priority         INTEGER DEFAULT 70,
+                        target_dimension TEXT DEFAULT 'Earnings / Cash Flow',
+                        version          INTEGER DEFAULT 1,
+                        enabled          INTEGER DEFAULT 1,
+                        created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE TABLE IF NOT EXISTS extracted_keywords (
+                        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                        word       TEXT UNIQUE NOT NULL,
+                        category   TEXT NOT NULL,
+                        frequency  INTEGER DEFAULT 1,
+                        last_seen  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE TABLE IF NOT EXISTS industries (
                         id           TEXT PRIMARY KEY,
                         name         TEXT NOT NULL,
                         status       TEXT DEFAULT 'ACTIVE',
                         risk_profile TEXT DEFAULT 'STANDARD_CORP',
                         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                    )
+                    );
+                    CREATE TABLE IF NOT EXISTS keywords (
+                        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                        word     TEXT UNIQUE NOT NULL,
+                        category TEXT DEFAULT 'general',
+                        enabled  INTEGER DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS domains (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        domain_name TEXT UNIQUE NOT NULL,
+                        enabled     INTEGER DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS website_visibility (
+                        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                        domain_name TEXT UNIQUE NOT NULL,
+                        is_visible  INTEGER DEFAULT 1
+                    );
+                    CREATE TABLE IF NOT EXISTS earnings_calendar (
+                        id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+                        company_name            TEXT NOT NULL,
+                        ticker                  TEXT,
+                        quarter                 TEXT NOT NULL,
+                        reporting_date          DATE,
+                        conf_call_time          TEXT,
+                        timezone                TEXT DEFAULT 'ET',
+                        webcast_url             TEXT,
+                        status                  TEXT DEFAULT 'ESTIMATED',
+                        date_source             TEXT DEFAULT 'HISTORICAL_PATTERN',
+                        source_url              TEXT,
+                        source_headline         TEXT,
+                        reporting_date_precision TEXT DEFAULT 'EXACT',
+                        reporting_time_precision TEXT DEFAULT 'UNKNOWN',
+                        confidence              REAL DEFAULT 0.75,
+                        created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(company_name, quarter)
+                    );
+                    CREATE TABLE IF NOT EXISTS earnings_results (
+                        id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                        company_name      TEXT NOT NULL,
+                        quarter           TEXT NOT NULL,
+                        nav_per_share     REAL,
+                        nav_prior         REAL,
+                        nii_per_share     REAL,
+                        nii_prior         REAL,
+                        dividend_regular  REAL,
+                        dividend_special  REAL,
+                        non_accrual_pct   REAL,
+                        non_accrual_prior REAL,
+                        reported_at       DATE,
+                        source_url        TEXT,
+                        source_headline   TEXT,
+                        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(company_name, quarter)
+                    );
                 """)
-            else:
-                c.execute("ALTER TABLE industries ADD COLUMN status TEXT DEFAULT 'ACTIVE'")
-                c.execute("ALTER TABLE industries ADD COLUMN risk_profile TEXT DEFAULT 'STANDARD_CORP'")
-                c.execute("ALTER TABLE industries ADD COLUMN created_at TIMESTAMP NULL")
-                c.execute("ALTER TABLE industries ADD COLUMN updated_at TIMESTAMP NULL")
+                c.execute("INSERT INTO schema_migrations(version, description) VALUES(1, 'Baseline Core Schema')")
+                c.commit()
 
-        c.commit()
-        self._seed(c)
+            # ---------------------------------------------------------------
+            # Migration v2: Dynamic Column Alterations & Stable Industry IDs
+            # ---------------------------------------------------------------
+            if 2 not in applied_versions:
+                logger.info("Applying schema migration v2: Column upgrades and scoping...")
+                cols_h = [r["name"] for r in c.execute("PRAGMA table_info(headlines)").fetchall()]
+                migrations_h = {
+                    "is_starred": "ALTER TABLE headlines ADD COLUMN is_starred INTEGER DEFAULT 0",
+                    "review_status": "ALTER TABLE headlines ADD COLUMN review_status INTEGER DEFAULT 0",
+                    "reviewed_at": "ALTER TABLE headlines ADD COLUMN reviewed_at DATETIME NULL",
+                    "notification_sent": "ALTER TABLE headlines ADD COLUMN notification_sent INTEGER DEFAULT 0",
+                    "user_sentiment": "ALTER TABLE headlines ADD COLUMN user_sentiment TEXT NULL",
+                    "domain_name": "ALTER TABLE headlines ADD COLUMN domain_name TEXT",
+                    "credit_risk": "ALTER TABLE headlines ADD COLUMN credit_risk TEXT DEFAULT 'NEUTRAL'",
+                    "key_risk_signal": "ALTER TABLE headlines ADD COLUMN key_risk_signal TEXT DEFAULT 'Routine News'",
+                    "baseline_vader_score": "ALTER TABLE headlines ADD COLUMN baseline_vader_score REAL DEFAULT 0.0",
+                    "credit_risk_matrix_json": "ALTER TABLE headlines ADD COLUMN credit_risk_matrix_json TEXT NULL",
+                }
+                for col, sql in migrations_h.items():
+                    if col not in cols_h:
+                        c.execute(sql)
+
+                cols_qc = [r["name"] for r in c.execute("PRAGMA table_info(query_categories)").fetchall()]
+                migrations_qc = {
+                    "scope_type": "ALTER TABLE query_categories ADD COLUMN scope_type TEXT DEFAULT 'UNIVERSAL'",
+                    "industry_id": "ALTER TABLE query_categories ADD COLUMN industry_id TEXT NULL",
+                    "company_id": "ALTER TABLE query_categories ADD COLUMN company_id INTEGER NULL",
+                    "priority": "ALTER TABLE query_categories ADD COLUMN priority INTEGER DEFAULT 70",
+                    "target_dimension": "ALTER TABLE query_categories ADD COLUMN target_dimension TEXT DEFAULT 'Earnings / Cash Flow'",
+                    "version": "ALTER TABLE query_categories ADD COLUMN version INTEGER DEFAULT 1",
+                    "created_at": "ALTER TABLE query_categories ADD COLUMN created_at TIMESTAMP NULL",
+                    "updated_at": "ALTER TABLE query_categories ADD COLUMN updated_at TIMESTAMP NULL",
+                }
+                for col, sql in migrations_qc.items():
+                    if col not in cols_qc:
+                        c.execute(sql)
+
+                c.execute("INSERT INTO schema_migrations(version, description) VALUES(2, 'Column upgrades & Scoped queries')")
+                c.commit()
+
+            # ---------------------------------------------------------------
+            # Migration v3: 3-Tier Normalized Model (Users, Entities, Portfolio)
+            # ---------------------------------------------------------------
+            if 3 not in applied_versions:
+                logger.info("Applying schema migration v3: 3-Tier Normalized Model (users, entities, portfolio)...")
+                c.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name       TEXT UNIQUE NOT NULL,
+                        email      TEXT NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
+                c.execute("""
+                    CREATE TABLE IF NOT EXISTS entities (
+                        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                        company_name TEXT UNIQUE NOT NULL,
+                        ticker       TEXT,
+                        industry     TEXT,
+                        industry_id  TEXT,
+                        country      TEXT DEFAULT 'USA',
+                        aliases_json TEXT,
+                        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """)
+
+                # Check if portfolio table needs migration from legacy flat table
+                has_legacy_portfolio = False
+                p_tables = c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='portfolio'").fetchall()
+                if p_tables:
+                    cols_p = [r["name"] for r in c.execute("PRAGMA table_info(portfolio)").fetchall()]
+                    if "entity_id" not in cols_p:
+                        has_legacy_portfolio = True
+
+                if has_legacy_portfolio:
+                    logger.info("Migrating legacy flat portfolio data into users, entities, and normalized portfolio...")
+                    legacy_rows = c.execute("SELECT * FROM portfolio").fetchall()
+
+                    # 1. Ensure Default User exists
+                    c.execute("INSERT OR IGNORE INTO users(name) VALUES('Default User')")
+
+                    # 2. Extract users and entities
+                    for row in legacy_rows:
+                        r_keys = row.keys()
+                        user_name = (row["user_name"] if "user_name" in r_keys and row["user_name"] else "Default User").strip()
+                        c.execute("INSERT OR IGNORE INTO users(name) VALUES(?)", (user_name,))
+
+                        comp = row["company_name"].strip()
+                        ticker = (row["ticker"] or "").strip().upper() if "ticker" in r_keys and row["ticker"] else None
+                        industry = row["industry"] if "industry" in r_keys else None
+                        industry_id = row["industry_id"] if "industry_id" in r_keys else None
+                        country = row["country"] if "country" in r_keys and row["country"] else "USA"
+                        aliases_json = row["aliases_json"] if "aliases_json" in r_keys else None
+
+                        c.execute("""
+                            INSERT OR IGNORE INTO entities(company_name, ticker, industry, industry_id, country, aliases_json)
+                            VALUES(?, ?, ?, ?, ?, ?)
+                        """, (comp, ticker, industry, industry_id, country, aliases_json))
+
+                    # 3. Create new normalized portfolio table
+                    c.execute("DROP TABLE portfolio")
+                    c.execute("""
+                        CREATE TABLE portfolio (
+                            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id             INTEGER NOT NULL,
+                            entity_id           INTEGER NOT NULL,
+                            custom_aliases_json TEXT,
+                            enabled             INTEGER DEFAULT 1,
+                            created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                            FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+                            UNIQUE(user_id, entity_id)
+                        );
+                    """)
+                    c.execute("CREATE INDEX IF NOT EXISTS idx_portfolio_user ON portfolio(user_id);")
+                    c.execute("CREATE INDEX IF NOT EXISTS idx_portfolio_entity ON portfolio(entity_id);")
+
+                    # 4. Populate portfolio relationships
+                    for row in legacy_rows:
+                        r_keys = row.keys()
+                        user_name = (row["user_name"] if "user_name" in r_keys and row["user_name"] else "Default User").strip()
+                        u_id = c.execute("SELECT id FROM users WHERE LOWER(name)=LOWER(?)", (user_name,)).fetchone()[0]
+                        comp = row["company_name"].strip()
+                        e_id = c.execute("SELECT id FROM entities WHERE LOWER(company_name)=LOWER(?)", (comp,)).fetchone()[0]
+                        enabled = row["enabled"] if "enabled" in r_keys else 1
+
+                        c.execute("""
+                            INSERT OR IGNORE INTO portfolio(user_id, entity_id, enabled)
+                            VALUES(?, ?, ?)
+                        """, (u_id, e_id, enabled))
+                else:
+                    c.execute("""
+                        CREATE TABLE IF NOT EXISTS portfolio (
+                            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id             INTEGER NOT NULL,
+                            entity_id           INTEGER NOT NULL,
+                            custom_aliases_json TEXT,
+                            enabled             INTEGER DEFAULT 1,
+                            created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                            FOREIGN KEY (entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+                            UNIQUE(user_id, entity_id)
+                        );
+                    """)
+                    c.execute("CREATE INDEX IF NOT EXISTS idx_portfolio_user ON portfolio(user_id);")
+                    c.execute("CREATE INDEX IF NOT EXISTS idx_portfolio_entity ON portfolio(entity_id);")
+
+                c.execute("INSERT INTO schema_migrations(version, description) VALUES(3, '3-Tier Normalized Portfolio Model')")
+                c.commit()
 
     def _seed(self, c: sqlite3.Connection):
         with self._write_lock:
@@ -254,20 +354,24 @@ class DatabaseManager:
                 "Commercial Banking": "COMMERCIAL_BANKING",
             })
 
+            # Seed Default User
+            c.execute("INSERT OR IGNORE INTO users(name) VALUES('Default User')")
+            default_user_row = c.execute("SELECT id FROM users WHERE name='Default User'").fetchone()
+            default_user_id = default_user_row[0] if default_user_row else 1
+
             if c.execute("SELECT COUNT(*) FROM portfolio").fetchone()[0] == 0:
                 for p in DEFAULT_PORTFOLIO:
                     i_id = ind_name_to_id.get(p["industry"], "COMMERCIAL_BANKING")
                     c.execute(
-                        "INSERT INTO portfolio(company_name,ticker,industry,industry_id,country,aliases_json,enabled) VALUES(?,?,?,?,?,?,1)",
+                        "INSERT OR IGNORE INTO entities(company_name,ticker,industry,industry_id,country,aliases_json) VALUES(?,?,?,?,?,?)",
                         (p["company"], p["ticker"], p["industry"], i_id, p["country"], json.dumps(p["aliases"])),
                     )
-
-            # Update existing portfolio entries without industry_id
-            c.execute("UPDATE portfolio SET industry_id = 'COMMERCIAL_BANKING' WHERE industry_id IS NULL AND (industry LIKE '%Bank%' OR industry LIKE '%Asset%')")
-            c.execute("UPDATE portfolio SET industry_id = 'BDC' WHERE industry_id IS NULL AND (industry LIKE '%BDC%' OR industry LIKE '%Credit%')")
-            c.execute("UPDATE portfolio SET industry_id = 'ENERGY' WHERE industry_id IS NULL AND industry LIKE '%Energy%'")
-            c.execute("UPDATE portfolio SET industry_id = 'TELECOM' WHERE industry_id IS NULL AND industry LIKE '%Tele%'")
-            c.execute("UPDATE portfolio SET industry_id = 'TECH' WHERE industry_id IS NULL AND industry LIKE '%Tech%'")
+                    e_row = c.execute("SELECT id FROM entities WHERE company_name=?", (p["company"],)).fetchone()
+                    if e_row:
+                        c.execute(
+                            "INSERT OR IGNORE INTO portfolio(user_id, entity_id, enabled) VALUES(?,?,1)",
+                            (default_user_id, e_row[0])
+                        )
 
             # Seed / Sync default query categories with full scope metadata
             if c.execute("SELECT COUNT(*) FROM query_categories").fetchone()[0] == 0:
@@ -439,9 +543,9 @@ class DatabaseManager:
             base_sql += " AND COALESCE(h.user_sentiment, h.sentiment) = ?"
             params.append(sentiment)
 
-        # Industry filter (checks headline industry OR portfolio company industry)
+        # Industry filter (checks headline industry OR company catalog industry)
         if industry and industry != "All":
-            base_sql += " AND (h.industry = ? OR h.company IN (SELECT company_name FROM portfolio WHERE industry = ?))"
+            base_sql += " AND (h.industry = ? OR h.company IN (SELECT company_name FROM entities WHERE industry = ?))"
             params.append(industry)
             params.append(industry)
 
@@ -633,37 +737,141 @@ class DatabaseManager:
         return [{"id": r["id"], "word": r["word"], "category": r["category"], "frequency": r["frequency"]} for r in rows]
 
     # -----------------------------------------------------------------------
-    # Portfolio CRUD
+    # Portfolio CRUD (3-Tier Normalized Architecture: Users, Entities, Portfolio)
     # -----------------------------------------------------------------------
-    def get_portfolio(self) -> List[Dict[str, Any]]:
-        rows = self._conn().execute("SELECT * FROM portfolio WHERE enabled=1").fetchall()
-        return [
-            {"id": r["id"], "company": r["company_name"], "ticker": r["ticker"], "industry": r["industry"],
-             "industry_id": r["industry_id"], "country": r["country"],
-             "aliases": json.loads(r["aliases_json"]) if r["aliases_json"] else auto_generate_aliases(r["company_name"])}
-            for r in rows
-        ]
+    def get_portfolio(self, user_id: Optional[Any] = None, user_name: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns enabled portfolio companies, optionally filtered by user_id or user_name."""
+        c = self._conn()
+        sql = """
+            SELECT p.id as portfolio_id, p.enabled, p.custom_aliases_json,
+                   u.id as user_id, u.name as user_name,
+                   e.id as entity_id, e.company_name, e.ticker, e.industry, e.industry_id, e.country, e.aliases_json
+            FROM portfolio p
+            JOIN entities e ON p.entity_id = e.id
+            JOIN users u ON p.user_id = u.id
+            WHERE p.enabled = 1
+        """
+        params = []
+        if user_id is not None and str(user_id).lower() != "all":
+            sql += " AND p.user_id = ?"
+            params.append(int(user_id))
+        elif user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND LOWER(u.name) = LOWER(?)"
+            params.append(user_name.strip())
 
-    def get_all_portfolio(self) -> List[Dict[str, Any]]:
-        rows = self._conn().execute("SELECT * FROM portfolio ORDER BY id").fetchall()
-        return [
-            {"id": r["id"], "company": r["company_name"], "ticker": r["ticker"],
-             "industry": r["industry"], "industry_id": r["industry_id"], "country": r["country"],
-             "aliases": json.loads(r["aliases_json"]) if r["aliases_json"] else auto_generate_aliases(r["company_name"]),
-             "enabled": r["enabled"]}
-            for r in rows
-        ]
+        sql += " ORDER BY (CASE WHEN u.name='Default User' THEN 0 ELSE 1 END), u.name ASC, e.company_name ASC"
+        rows = c.execute(sql, params).fetchall()
 
-    def add_portfolio(self, company: str, ticker: str, industry: str, country: str, user_aliases: List[str], industry_id: str = None) -> bool:
+        results = []
+        for r in rows:
+            master_aliases = json.loads(r["aliases_json"]) if r["aliases_json"] else auto_generate_aliases(r["company_name"])
+            custom_aliases = json.loads(r["custom_aliases_json"]) if r["custom_aliases_json"] else []
+            combined_aliases = list(dict.fromkeys(master_aliases + custom_aliases))
+            results.append({
+                "id": r["portfolio_id"],
+                "portfolio_id": r["portfolio_id"],
+                "user_id": r["user_id"],
+                "user_name": r["user_name"],
+                "entity_id": r["entity_id"],
+                "company": r["company_name"],
+                "company_name": r["company_name"],
+                "ticker": r["ticker"],
+                "industry": r["industry"],
+                "industry_id": r["industry_id"],
+                "country": r["country"],
+                "aliases": combined_aliases,
+                "enabled": r["enabled"],
+            })
+        return results
+
+    def get_all_portfolio(self, user_id: Optional[Any] = None, user_name: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns all portfolio companies (active + inactive), optionally filtered by user_id or user_name."""
+        c = self._conn()
+        sql = """
+            SELECT p.id as portfolio_id, p.enabled, p.custom_aliases_json,
+                   u.id as user_id, u.name as user_name,
+                   e.id as entity_id, e.company_name, e.ticker, e.industry, e.industry_id, e.country, e.aliases_json
+            FROM portfolio p
+            JOIN entities e ON p.entity_id = e.id
+            JOIN users u ON p.user_id = u.id
+        """
+        params = []
+        if user_id is not None and str(user_id).lower() != "all":
+            sql += " WHERE p.user_id = ?"
+            params.append(int(user_id))
+        elif user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " WHERE LOWER(u.name) = LOWER(?)"
+            params.append(user_name.strip())
+
+        sql += " ORDER BY (CASE WHEN u.name='Default User' THEN 0 ELSE 1 END), u.name ASC, e.company_name ASC"
+        rows = c.execute(sql, params).fetchall()
+
+        results = []
+        for r in rows:
+            master_aliases = json.loads(r["aliases_json"]) if r["aliases_json"] else auto_generate_aliases(r["company_name"])
+            custom_aliases = json.loads(r["custom_aliases_json"]) if r["custom_aliases_json"] else []
+            combined_aliases = list(dict.fromkeys(master_aliases + custom_aliases))
+            results.append({
+                "id": r["portfolio_id"],
+                "portfolio_id": r["portfolio_id"],
+                "user_id": r["user_id"],
+                "user_name": r["user_name"],
+                "entity_id": r["entity_id"],
+                "company": r["company_name"],
+                "company_name": r["company_name"],
+                "ticker": r["ticker"],
+                "industry": r["industry"],
+                "industry_id": r["industry_id"],
+                "country": r["country"],
+                "aliases": combined_aliases,
+                "enabled": r["enabled"],
+            })
+        return results
+
+    def get_users(self) -> List[Dict[str, Any]]:
+        """Returns structured list of registered users with tracking counts."""
+        c = self._conn()
+        rows = c.execute("""
+            SELECT u.id, u.name, COUNT(p.id) as entity_count
+            FROM users u
+            LEFT JOIN portfolio p ON u.id = p.user_id
+            GROUP BY u.id, u.name
+            ORDER BY (CASE WHEN u.name='Default User' THEN 0 ELSE 1 END), u.name ASC
+        """).fetchall()
+        return [{"id": r["id"], "name": r["name"], "entity_count": r["entity_count"]} for r in rows]
+
+    def get_portfolio_users(self) -> List[str]:
+        """Backward-compatible user names list."""
+        return [u["name"] for u in self.get_users()]
+
+    def add_portfolio(self, company: str, ticker: str, industry: str, country: str,
+                      user_aliases: List[str], industry_id: str = None, user_name: str = "Default User",
+                      user_id: Optional[int] = None) -> bool:
+        """Adds or maps a company to a user's portfolio."""
         with self._write_lock:
             try:
-                aliases = auto_generate_aliases(company, user_aliases)
                 c = self._conn()
-                # Resolve industry_id or display name
+                company = (company or "").strip()
+                if not company:
+                    return False
+
+                # 1. Resolve User
+                if user_id is not None:
+                    u_row = c.execute("SELECT id, name FROM users WHERE id=?", (user_id,)).fetchone()
+                    if not u_row:
+                        return False
+                    target_user_id = u_row["id"]
+                else:
+                    u_name = (user_name or "Default User").strip()
+                    c.execute("INSERT OR IGNORE INTO users(name) VALUES(?)", (u_name,))
+                    target_user_id = c.execute("SELECT id FROM users WHERE LOWER(name)=LOWER(?)", (u_name,)).fetchone()[0]
+
+                # 2. Resolve Industry
                 if not industry_id and industry:
-                    ind_row = c.execute("SELECT id FROM industries WHERE LOWER(name)=LOWER(?) OR id=?", (industry.strip(), industry.strip())).fetchone()
+                    ind_row = c.execute("SELECT id, name FROM industries WHERE LOWER(name)=LOWER(?) OR id=?", (industry.strip(), industry.strip())).fetchone()
                     if ind_row:
                         industry_id = ind_row["id"]
+                        industry = ind_row["name"]
                     else:
                         industry_id = re.sub(r'[^A-Z0-9_]', '', industry.upper().replace(' ', '_'))
                         c.execute("INSERT OR IGNORE INTO industries(id, name) VALUES(?,?)", (industry_id, industry.strip()))
@@ -672,38 +880,94 @@ class DatabaseManager:
                     if ind_row:
                         industry = ind_row["name"]
 
-                c.execute(
-                    "INSERT INTO portfolio(company_name,ticker,industry,industry_id,country,aliases_json,enabled) VALUES(?,?,?,?,?,?,1)",
-                    (company, ticker, industry, industry_id, country, json.dumps(aliases)),
-                )
-                c.commit()
-                return True
-            except sqlite3.IntegrityError:
-                return False
-
-    def update_portfolio(self, pid: int, company: str, ticker: str, industry: str, country: str, user_aliases: List[str], industry_id: str = None) -> bool:
-        with self._write_lock:
-            try:
                 aliases = auto_generate_aliases(company, user_aliases)
-                c = self._conn()
-                existing = c.execute("SELECT id FROM portfolio WHERE LOWER(company_name)=LOWER(?) AND id!=?", (company, pid)).fetchone()
-                if existing:
+
+                # 3. Resolve / Upsert Entity
+                e_row = c.execute("SELECT id, aliases_json FROM entities WHERE LOWER(company_name)=LOWER(?)", (company,)).fetchone()
+                if e_row:
+                    target_entity_id = e_row["id"]
+                    c.execute("""
+                        UPDATE entities
+                        SET ticker=COALESCE(?, ticker),
+                            industry=COALESCE(?, industry),
+                            industry_id=COALESCE(?, industry_id),
+                            country=COALESCE(?, country),
+                            aliases_json=?,
+                            updated_at=CURRENT_TIMESTAMP
+                        WHERE id=?
+                    """, (ticker or None, industry or None, industry_id or None, country or "USA", json.dumps(aliases), target_entity_id))
+                else:
+                    c.execute("""
+                        INSERT INTO entities(company_name, ticker, industry, industry_id, country, aliases_json)
+                        VALUES(?, ?, ?, ?, ?, ?)
+                    """, (company, ticker or None, industry or None, industry_id or None, country or "USA", json.dumps(aliases)))
+                    target_entity_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+                # 4. Create Portfolio Mapping
+                existing_p = c.execute("SELECT id FROM portfolio WHERE user_id=? AND entity_id=?", (target_user_id, target_entity_id)).fetchone()
+                if existing_p:
                     return False
 
-                # Resolve industry_id or display name
+                c.execute("""
+                    INSERT INTO portfolio(user_id, entity_id, enabled)
+                    VALUES(?, ?, 1)
+                """, (target_user_id, target_entity_id))
+                c.commit()
+                return True
+            except Exception as e:
+                logger.error("Error adding portfolio: %s", e)
+                return False
+
+    def update_portfolio(self, pid: int, company: str, ticker: str, industry: str, country: str,
+                         user_aliases: List[str], industry_id: str = None, user_name: str = "Default User",
+                         user_id: Optional[int] = None) -> bool:
+        """Updates entity metadata and user portfolio relationship."""
+        with self._write_lock:
+            try:
+                c = self._conn()
+                p_row = c.execute("SELECT user_id, entity_id FROM portfolio WHERE id=?", (pid,)).fetchone()
+                if not p_row:
+                    return False
+
+                old_user_id = p_row["user_id"]
+                entity_id = p_row["entity_id"]
+
+                # Resolve target user
+                if user_id is not None:
+                    target_user_id = user_id
+                elif user_name:
+                    c.execute("INSERT OR IGNORE INTO users(name) VALUES(?)", (user_name.strip(),))
+                    target_user_id = c.execute("SELECT id FROM users WHERE LOWER(name)=LOWER(?)", (user_name.strip(),)).fetchone()[0]
+                else:
+                    target_user_id = old_user_id
+
+                # Resolve industry
                 if industry_id:
                     ind_row = c.execute("SELECT name FROM industries WHERE id=?", (industry_id,)).fetchone()
                     if ind_row:
                         industry = ind_row["name"]
                 elif industry:
-                    ind_row = c.execute("SELECT id FROM industries WHERE LOWER(name)=LOWER(?) OR id=?", (industry.strip(), industry.strip())).fetchone()
+                    ind_row = c.execute("SELECT id, name FROM industries WHERE LOWER(name)=LOWER(?) OR id=?", (industry.strip(), industry.strip())).fetchone()
                     if ind_row:
                         industry_id = ind_row["id"]
+                        industry = ind_row["name"]
 
-                c.execute(
-                    "UPDATE portfolio SET company_name=?, ticker=?, industry=?, industry_id=?, country=?, aliases_json=? WHERE id=?",
-                    (company, ticker, industry, industry_id, country, json.dumps(aliases), pid),
-                )
+                aliases = auto_generate_aliases(company, user_aliases)
+
+                # Update entity metadata
+                c.execute("""
+                    UPDATE entities
+                    SET company_name=?, ticker=?, industry=?, industry_id=?, country=?, aliases_json=?, updated_at=CURRENT_TIMESTAMP
+                    WHERE id=?
+                """, (company.strip(), ticker or None, industry or None, industry_id or None, country or "USA", json.dumps(aliases), entity_id))
+
+                # Update portfolio relationship user if changed
+                if target_user_id != old_user_id:
+                    dup = c.execute("SELECT id FROM portfolio WHERE user_id=? AND entity_id=? AND id!=?", (target_user_id, entity_id, pid)).fetchone()
+                    if dup:
+                        return False
+                    c.execute("UPDATE portfolio SET user_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", (target_user_id, pid))
+
                 c.commit()
                 return True
             except Exception as e:
@@ -717,19 +981,171 @@ class DatabaseManager:
 
     def toggle_portfolio(self, pid: int, enabled: int):
         with self._write_lock:
-            self._conn().execute("UPDATE portfolio SET enabled=? WHERE id=?", (enabled, pid))
+            self._conn().execute("UPDATE portfolio SET enabled=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", (enabled, pid))
             self._conn().commit()
 
-    def bulk_toggle_portfolio(self, enabled: int):
+    def bulk_toggle_portfolio(self, enabled: int, user_id: Optional[Any] = None, user_name: Optional[str] = None):
+        """Toggles active status for all companies or for a specific user."""
         with self._write_lock:
-            self._conn().execute("UPDATE portfolio SET enabled=?", (enabled,))
-            self._conn().commit()
+            c = self._conn()
+            if user_id is not None and str(user_id).lower() != "all":
+                c.execute("UPDATE portfolio SET enabled=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?", (enabled, int(user_id)))
+            elif user_name and user_name.strip() and user_name.strip().lower() != "all":
+                u_row = c.execute("SELECT id FROM users WHERE LOWER(name)=LOWER(?)", (user_name.strip(),)).fetchone()
+                if u_row:
+                    c.execute("UPDATE portfolio SET enabled=?, updated_at=CURRENT_TIMESTAMP WHERE user_id=?", (enabled, u_row["id"]))
+            else:
+                c.execute("UPDATE portfolio SET enabled=?, updated_at=CURRENT_TIMESTAMP", (enabled,))
+            c.commit()
+
+    def bulk_import_portfolio(self, records: List[Dict[str, Any]], atomic: bool = True) -> Dict[str, Any]:
+        """
+        Batch imports portfolio records across users with 3-tier normalization,
+        validation-first atomicity, and conflict deduplication.
+        """
+        if not records:
+            return {"ok": False, "message": "No records provided", "added": 0, "updated": 0, "errors": []}
+
+        # Step 1: In-memory Pre-validation
+        parsed_records = []
+        errors = []
+        seen_in_batch = set()
+
+        for idx, r in enumerate(records, start=1):
+            user_name = str(r.get("user_name") or r.get("user") or r.get("analyst") or r.get("User Name") or r.get("User") or "").strip()
+            company = str(r.get("company") or r.get("company_name") or r.get("entity") or r.get("entity_name") or r.get("Company Name") or r.get("Entity Name") or "").strip()
+            ticker = str(r.get("ticker") or r.get("symbol") or r.get("Ticker") or "").strip().upper()
+            industry = str(r.get("industry") or r.get("sector") or r.get("Industry") or "").strip()
+            industry_id = r.get("industry_id") or r.get("Industry Code") or None
+            country = str(r.get("country") or r.get("Country") or "USA").strip()
+            raw_aliases = r.get("aliases") or r.get("Aliases") or []
+
+            if not user_name:
+                errors.append(f"Row {idx}: Missing mandatory 'User Name'")
+            if not company:
+                errors.append(f"Row {idx}: Missing mandatory 'Entity Name / Company'")
+
+            if isinstance(raw_aliases, str):
+                user_aliases = [a.strip() for a in re.split(r'[,;|\n]', raw_aliases) if a.strip()]
+            elif isinstance(raw_aliases, list):
+                user_aliases = [str(a).strip() for a in raw_aliases if str(a).strip()]
+            else:
+                user_aliases = []
+
+            key = (user_name.lower(), company.lower())
+            is_dup = key in seen_in_batch
+            seen_in_batch.add(key)
+
+            parsed_records.append({
+                "row": idx,
+                "user_name": user_name,
+                "company": company,
+                "ticker": ticker,
+                "industry": industry,
+                "industry_id": industry_id,
+                "country": country,
+                "user_aliases": user_aliases,
+                "is_batch_duplicate": is_dup,
+            })
+
+        if errors and atomic:
+            return {
+                "ok": False,
+                "message": f"Import aborted: {len(errors)} validation errors found.",
+                "added": 0,
+                "updated": 0,
+                "total": len(records),
+                "errors": errors,
+            }
+
+        # Step 2: Atomic Execution
+        added = 0
+        updated = 0
+
+        with self._write_lock:
+            c = self._conn()
+            try:
+                for item in parsed_records:
+                    if not item["user_name"] or not item["company"]:
+                        continue
+
+                    # 1. Resolve / Create User
+                    c.execute("INSERT OR IGNORE INTO users(name) VALUES(?)", (item["user_name"],))
+                    u_id = c.execute("SELECT id FROM users WHERE LOWER(name)=LOWER(?)", (item["user_name"],)).fetchone()[0]
+
+                    # 2. Resolve Industry
+                    ind_id = item["industry_id"]
+                    ind_name = item["industry"]
+                    if not ind_id and ind_name:
+                        ind_row = c.execute("SELECT id, name FROM industries WHERE LOWER(name)=LOWER(?) OR id=?", (ind_name.lower(), ind_name)).fetchone()
+                        if ind_row:
+                            ind_id = ind_row["id"]
+                            ind_name = ind_row["name"]
+                        else:
+                            ind_id = re.sub(r'[^A-Z0-9_]', '', ind_name.upper().replace(' ', '_'))
+                            c.execute("INSERT OR IGNORE INTO industries(id, name) VALUES(?,?)", (ind_id, ind_name))
+                    elif ind_id and not ind_name:
+                        ind_row = c.execute("SELECT name FROM industries WHERE id=?", (ind_id,)).fetchone()
+                        if ind_row:
+                            ind_name = ind_row["name"]
+
+                    aliases = auto_generate_aliases(item["company"], item["user_aliases"])
+
+                    # 3. Resolve / Create Canonical Entity
+                    e_row = c.execute("SELECT id FROM entities WHERE LOWER(company_name)=LOWER(?)", (item["company"],)).fetchone()
+                    if e_row:
+                        e_id = e_row["id"]
+                        c.execute("""
+                            UPDATE entities
+                            SET ticker=COALESCE(?, ticker),
+                                industry=COALESCE(?, industry),
+                                industry_id=COALESCE(?, industry_id),
+                                country=COALESCE(?, country),
+                                aliases_json=?,
+                                updated_at=CURRENT_TIMESTAMP
+                            WHERE id=?
+                        """, (item["ticker"] or None, ind_name or None, ind_id or None, item["country"] or "USA", json.dumps(aliases), e_id))
+                    else:
+                        c.execute("""
+                            INSERT INTO entities(company_name, ticker, industry, industry_id, country, aliases_json)
+                            VALUES(?, ?, ?, ?, ?, ?)
+                        """, (item["company"], item["ticker"] or None, ind_name or None, ind_id or None, item["country"] or "USA", json.dumps(aliases)))
+                        e_id = c.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+                    # 4. Upsert User Portfolio Relationship
+                    p_row = c.execute("SELECT id FROM portfolio WHERE user_id=? AND entity_id=?", (u_id, e_id)).fetchone()
+                    if p_row:
+                        c.execute("UPDATE portfolio SET enabled=1, updated_at=CURRENT_TIMESTAMP WHERE id=?", (p_row["id"],))
+                        updated += 1
+                    else:
+                        c.execute("INSERT INTO portfolio(user_id, entity_id, enabled) VALUES(?, ?, 1)", (u_id, e_id))
+                        added += 1
+
+                c.commit()
+                return {
+                    "ok": True,
+                    "added": added,
+                    "updated": updated,
+                    "total": len(records),
+                    "errors": errors,
+                }
+            except Exception as e:
+                c.rollback()
+                logger.error("Transactional bulk import failed: %s", e)
+                return {
+                    "ok": False,
+                    "message": f"Database transaction failed: {str(e)}",
+                    "added": 0,
+                    "updated": 0,
+                    "total": len(records),
+                    "errors": errors + [str(e)],
+                }
 
     # -----------------------------------------------------------------------
     # Query Categories CRUD (Scoped & Versioned)
     # -----------------------------------------------------------------------
     def get_query_categories(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
-        sql = "SELECT qc.*, ind.name as industry_name, p.company_name as company_target_name FROM query_categories qc LEFT JOIN industries ind ON qc.industry_id = ind.id LEFT JOIN portfolio p ON qc.company_id = p.id"
+        sql = "SELECT qc.*, ind.name as industry_name, e.company_name as company_target_name FROM query_categories qc LEFT JOIN industries ind ON qc.industry_id = ind.id LEFT JOIN entities e ON qc.company_id = e.id"
         if enabled_only:
             sql += " WHERE qc.enabled=1"
         sql += " ORDER BY qc.priority DESC, qc.id ASC"
@@ -874,7 +1290,7 @@ class DatabaseManager:
                 i.name,
                 i.status,
                 i.risk_profile,
-                (SELECT COUNT(*) FROM portfolio p WHERE p.industry_id = i.id AND p.enabled = 1) as company_count,
+                (SELECT COUNT(DISTINCT p.entity_id) FROM portfolio p JOIN entities e ON p.entity_id = e.id WHERE e.industry_id = i.id AND p.enabled = 1) as company_count,
                 (SELECT COUNT(*) FROM query_categories qc WHERE qc.industry_id = i.id AND qc.enabled = 1) as category_count,
                 i.created_at,
                 i.updated_at
@@ -921,12 +1337,12 @@ class DatabaseManager:
                 return False, str(e)
 
     def rename_industry(self, industry_id: str, new_name: str) -> bool:
-        """Safely renames the industry display name and updates associated portfolio records."""
+        """Safely renames the industry display name and updates associated entity records."""
         with self._write_lock:
             try:
                 c = self._conn()
                 c.execute("UPDATE industries SET name=?, updated_at=CURRENT_TIMESTAMP WHERE id=?", (new_name.strip(), industry_id))
-                c.execute("UPDATE portfolio SET industry=? WHERE industry_id=?", (new_name.strip(), industry_id))
+                c.execute("UPDATE entities SET industry=?, updated_at=CURRENT_TIMESTAMP WHERE industry_id=?", (new_name.strip(), industry_id))
                 c.commit()
                 return True
             except Exception as e:
@@ -956,7 +1372,7 @@ class DatabaseManager:
         with self._write_lock:
             try:
                 c = self._conn()
-                active_comps = c.execute("SELECT COUNT(*) FROM portfolio WHERE industry_id=?", (industry_id,)).fetchone()[0]
+                active_comps = c.execute("SELECT COUNT(*) FROM entities WHERE industry_id=?", (industry_id,)).fetchone()[0]
                 if active_comps > 0:
                     return False, f"Cannot delete industry '{industry_id}': {active_comps} company(ies) are currently assigned to it. Deactivate the industry instead."
 
