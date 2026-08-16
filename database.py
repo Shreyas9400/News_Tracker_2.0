@@ -366,7 +366,7 @@ class DatabaseManager:
                 migrations_h4 = {
                     "published_at": "ALTER TABLE headlines ADD COLUMN published_at TEXT NULL",
                     "published_at_raw": "ALTER TABLE headlines ADD COLUMN published_at_raw TEXT NULL",
-                    "crawled_at": "ALTER TABLE headlines ADD COLUMN crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+                    "crawled_at": "ALTER TABLE headlines ADD COLUMN crawled_at TIMESTAMP NULL",
                     "date_source": "ALTER TABLE headlines ADD COLUMN date_source TEXT DEFAULT 'RSS_PUBDATE'",
                     "date_confidence": "ALTER TABLE headlines ADD COLUMN date_confidence TEXT DEFAULT 'LOW'",
                     "canonical_event_id": "ALTER TABLE headlines ADD COLUMN canonical_event_id TEXT NULL",
@@ -377,7 +377,8 @@ class DatabaseManager:
                     if col not in cols_h:
                         c.execute(sql)
 
-                # 3. Backfill legacy published_time into published_at if empty
+                # 3. Backfill legacy published_time and crawled_at if empty
+                c.execute("UPDATE headlines SET crawled_at = CURRENT_TIMESTAMP WHERE crawled_at IS NULL")
                 c.execute("UPDATE headlines SET published_at = published_time WHERE published_at IS NULL AND published_time IS NOT NULL")
                 c.execute("UPDATE headlines SET published_at_raw = published_time WHERE published_at_raw IS NULL AND published_time IS NOT NULL")
 
