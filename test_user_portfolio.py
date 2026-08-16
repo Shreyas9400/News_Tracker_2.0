@@ -187,6 +187,90 @@ class TestVersionedMigrationsAndNormalization(unittest.TestCase):
         finally:
             migrated_db.close()
 
+    def test_user_scoped_dashboard_and_terminal_filtering(self):
+        """Test user-scoped filtering across dashboard metrics, news terminal, and earnings tracker."""
+        # 1. Setup multi-user portfolio
+        payload = [
+            {"user_name": "Sarah Connor", "company": "JPMorgan Chase", "ticker": "JPM", "industry": "Commercial Banking"},
+            {"user_name": "Michael Scott", "company": "Chevron Corporation", "ticker": "CVX", "industry": "Energy & Power"},
+        ]
+        self.db.bulk_import_portfolio(payload)
+
+        # 2. Ingest headlines for both companies
+        self.db.save_headline({
+            "headline": "JPMorgan Posts Record Net Income",
+            "company": "JPMorgan Chase",
+            "source": "Reuters",
+            "url": "https://reuters.com/jpm-1",
+            "published_time": "2026-08-16 10:00:00",
+            "sentiment": "Positive",
+            "relevance_score": 90,
+        })
+        self.db.save_headline({
+            "headline": "Chevron Discovers Major Offshore Oil Field",
+            "company": "Chevron Corporation",
+            "source": "Bloomberg",
+            "url": "https://bloomberg.com/cvx-1",
+            "published_time": "2026-08-16 11:00:00",
+            "sentiment": "Very Positive",
+            "relevance_score": 88,
+        })
+
+        # 3. Ingest earnings events
+        self.db.save_earnings_calendar({
+            "company_name": "JPMorgan Chase",
+            "ticker": "JPM",
+            "quarter": "Q2 2026",
+            "reporting_date": "2026-08-20",
+            "status": "CONFIRMED",
+        })
+        self.db.save_earnings_calendar({
+            "company_name": "Chevron Corporation",
+            "ticker": "CVX",
+            "quarter": "Q2 2026",
+            "reporting_date": "2026-08-28",
+            "status": "ESTIMATED",
+        })
+
+        # 4. Verify Dashboard Metrics per User
+        d_sarah = self.db.dashboard_metrics(user_name="Sarah Connor")
+        d_michael = self.db.dashboard_metrics(user_name="Michael Scott")
+        d_all = self.db.dashboard_metrics(user_name="All")
+
+        self.assertEqual(d_sarah["total"], 1)
+        self.assertEqual(d_sarah["trending_companies"][0]["company"], "JPMorgan Chase")
+
+        self.assertEqual(d_michael["total"], 1)
+        self.assertEqual(d_michael["trending_companies"][0]["company"], "Chevron Corporation")
+
+        self.assertEqual(d_all["total"], 2)
+
+        # 5. Verify Headlines Pagination per User
+        news_sarah = self.db.fetch_headlines_paginated(user_name="Sarah Connor")
+        self.assertEqual(news_sarah["total"], 1)
+        self.assertEqual(news_sarah["items"][0]["company"], "JPMorgan Chase")
+
+        news_michael = self.db.fetch_headlines_paginated(user_name="Michael Scott")
+        self.assertEqual(news_michael["total"], 1)
+        self.assertEqual(news_michael["items"][0]["company"], "Chevron Corporation")
+
+        # 6. Verify Earnings Calendar per User
+        earn_sarah = self.db.get_earnings_calendar(user_name="Sarah Connor")
+        self.assertEqual(len(earn_sarah), 1)
+        self.assertEqual(earn_sarah[0]["company_name"], "JPMorgan Chase")
+
+        earn_michael = self.db.get_earnings_calendar(user_name="Michael Scott")
+        self.assertEqual(len(earn_michael), 1)
+        self.assertEqual(earn_michael[0]["company_name"], "Chevron Corporation")
+
+        # 7. Verify Filter Companies per User
+        comps_sarah = self.db.get_distinct_companies(user_name="Sarah Connor")
+        self.assertEqual(comps_sarah, ["JPMorgan Chase"])
+
+        comps_michael = self.db.get_distinct_companies(user_name="Michael Scott")
+        self.assertEqual(comps_michael, ["Chevron Corporation"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

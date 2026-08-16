@@ -87,18 +87,22 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # --- Dashboard APIs ---
         elif path == "/api/dashboard":
-            self._json(self.server.app_db.dashboard_metrics())
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.dashboard_metrics(user_name=user_name))
 
         elif path == "/api/dashboard/daily":
             limit = int(qs.get("limit", ["10"])[0])
-            self._json(self.server.app_db.get_daily_top_news(limit))
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.get_daily_top_news(limit, user_name=user_name))
 
         elif path == "/api/dashboard/company_sentiments":
             days = int(qs.get("days", ["7"])[0])
-            self._json(self.server.app_db.get_company_sentiments(days))
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.get_company_sentiments(days, user_name=user_name))
 
         elif path == "/api/dashboard/tag_summary":
-            self._json(self.server.app_db.get_tag_summary())
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.get_tag_summary(user_name=user_name))
 
         # --- Headlines (Paginated) ---
         elif path == "/api/headlines":
@@ -113,8 +117,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             date_from = qs.get("date_from", [""])[0]
             date_to = qs.get("date_to", [""])[0]
             ft = qs.get("filter_type", ["All"])[0]
+            user_name = qs.get("user", ["All"])[0]
             self._json(self.server.app_db.fetch_headlines_paginated(
-                page, page_size, q, sentiment, recency, industry, company, domain, date_from, date_to, ft
+                page, page_size, q, sentiment, recency, industry, company, domain, date_from, date_to, ft, user_name=user_name
             ))
 
         # --- Taxonomy ---
@@ -204,7 +209,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             comp = qs.get("company", ["All"])[0]
             qtr = qs.get("quarter", ["All"])[0]
             st = qs.get("status", ["All"])[0]
-            events = self.server.app_db.get_earnings_calendar(company=comp, quarter=qtr, status=st)
+            user_name = qs.get("user", ["All"])[0]
+            events = self.server.app_db.get_earnings_calendar(company=comp, quarter=qtr, status=st, user_name=user_name)
 
             # Dynamic countdown calculation (calculated dynamically, never persisted)
             now = datetime.datetime.now()
@@ -229,7 +235,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif path == "/api/earnings/results":
             comp = qs.get("company", ["All"])[0]
             qtr = qs.get("quarter", ["All"])[0]
-            results = self.server.app_db.get_earnings_results(company=comp, quarter=qtr)
+            user_name = qs.get("user", ["All"])[0]
+            results = self.server.app_db.get_earnings_results(company=comp, quarter=qtr, user_name=user_name)
 
             # Calculate NII coverage ratio & NAV deltas
             for res in results:
@@ -256,7 +263,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # --- Filter Dropdowns ---
         elif path == "/api/filters/companies":
-            self._json(self.server.app_db.get_distinct_companies())
+            user_name = qs.get("user", ["All"])[0]
+            self._json(self.server.app_db.get_distinct_companies(user_name=user_name))
 
         elif path == "/api/filters/industries":
             self._json(self.server.app_db.get_distinct_industries())

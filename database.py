@@ -706,7 +706,8 @@ class DatabaseManager:
                                   recency: str = "All", industry: str = "All",
                                   company: str = "All", domain: str = "All",
                                   date_from: str = "", date_to: str = "",
-                                  filter_type: str = "All") -> Dict[str, Any]:
+                                  filter_type: str = "All",
+                                  user_name: str = "All") -> Dict[str, Any]:
         """Fetches headlines with full filtering and pagination."""
         base_sql = """
             SELECT h.*, COALESCE(ce.source_count, 1) AS cluster_sources_count
@@ -720,6 +721,11 @@ class DatabaseManager:
             WHERE (wv.is_visible IS NULL OR wv.is_visible = 1)
         """
         params: list = []
+
+        # User Portfolio Filter
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            base_sql += " AND h.company IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
 
         # Filter type
         if filter_type == "starred":
@@ -789,13 +795,14 @@ class DatabaseManager:
         items = [self._row_to_dict(r) for r in rows]
         return {"items": items, "total": total, "page": page, "pages": total_pages, "page_size": page_size}
 
-    def _row_to_dict(self, r) -> Dict[str, Any]:
+    def _row_to_dict(self, r: sqlite3.Row) -> Dict[str, Any]:
         keys = r.keys()
         return {
             "id": r["id"], "headline": r["headline"], "source": r["source"],
-            "url": r["url"], "published_time": r["published_time"],
-            "published_at": r["published_at"] if "published_at" in keys and r["published_at"] else r["published_time"],
-            "published_at_raw": r["published_at_raw"] if "published_at_raw" in keys and r["published_at_raw"] else r["published_time"],
+            "url": r["url"],
+            "published_time": r["published_time"] if "published_time" in keys else "",
+            "published_at": r["published_at"] if "published_at" in keys and r["published_at"] else (r["published_time"] if "published_time" in keys else ""),
+            "published_at_raw": r["published_at_raw"] if "published_at_raw" in keys and r["published_at_raw"] else (r["published_time"] if "published_time" in keys else ""),
             "crawled_at": r["crawled_at"] if "crawled_at" in keys and r["crawled_at"] else "",
             "date_source": r["date_source"] if "date_source" in keys and r["date_source"] else "RSS_PUBDATE",
             "date_confidence": r["date_confidence"] if "date_confidence" in keys and r["date_confidence"] else "LOW",
@@ -824,47 +831,56 @@ class DatabaseManager:
     # -----------------------------------------------------------------------
     # Dashboard Endpoints
     # -----------------------------------------------------------------------
-    def dashboard_metrics(self) -> Dict[str, Any]:
+    def dashboard_metrics(self, user_name: str = "All") -> Dict[str, Any]:
         c = self._conn()
-        total = c.execute("""
-            SELECT COUNT(*) FROM headlines
-            WHERE created_at >= datetime('now', '-24 hours')
-               OR DATE(created_at, 'localtime') = DATE('now', 'localtime')
-        """).fetchone()[0]
+        user_filter = ""
+        params = []
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            user_filter = " AND company IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params = [user_name.strip()]
 
-        high = c.execute("SELECT COUNT(*) FROM headlines WHERE relevance_score>=85").fetchone()[0]
-        pos = c.execute("SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment) IN ('Positive','Very Positive')").fetchone()[0]
-        neg = c.execute("SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment) IN ('Negative','Very Negative')").fetchone()[0]
-        neu = c.execute("SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment)='Neutral'").fetchone()[0]
-        unread = c.execute("SELECT COUNT(*) FROM headlines WHERE review_status=0").fetchone()[0]
-        starred = c.execute("SELECT COUNT(*) FROM headlines WHERE is_starred=1").fetchone()[0]
+        total = c.execute(f"""
+            SELECT COUNT(*) FROM headlines
+            WHERE (created_at >= datetime('now', '-24 hours')
+               OR DATE(created_at, 'localtime') = DATE('now', 'localtime'))
+               {user_filter}
+        """, params).fetchone()[0]
+
+        high = c.execute(f"SELECT COUNT(*) FROM headlines WHERE relevance_score>=85 {user_filter}", params).fetchone()[0]
+        pos = c.execute(f"SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment) IN ('Positive','Very Positive') {user_filter}", params).fetchone()[0]
+        neg = c.execute(f"SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment) IN ('Negative','Very Negative') {user_filter}", params).fetchone()[0]
+        neu = c.execute(f"SELECT COUNT(*) FROM headlines WHERE COALESCE(user_sentiment, sentiment)='Neutral' {user_filter}", params).fetchone()[0]
+        unread = c.execute(f"SELECT COUNT(*) FROM headlines WHERE review_status=0 {user_filter}", params).fetchone()[0]
+        starred = c.execute(f"SELECT COUNT(*) FROM headlines WHERE is_starred=1 {user_filter}", params).fetchone()[0]
 
         tc = [{"company": r[0], "count": r[1]}
-              for r in c.execute("SELECT company,COUNT(*) c FROM headlines WHERE company!='General' GROUP BY company ORDER BY c DESC LIMIT 5").fetchall()]
+              for r in c.execute(f"SELECT company,COUNT(*) c FROM headlines WHERE company!='General' {user_filter} GROUP BY company ORDER BY c DESC LIMIT 5", params).fetchall()]
         ti = [{"industry": r[0], "count": r[1]}
-              for r in c.execute("SELECT industry,COUNT(*) c FROM headlines WHERE industry!='General' GROUP BY industry ORDER BY c DESC LIMIT 5").fetchall()]
+              for r in c.execute(f"SELECT industry,COUNT(*) c FROM headlines WHERE industry!='General' {user_filter} GROUP BY industry ORDER BY c DESC LIMIT 5", params).fetchall()]
         return {"total": total, "high": high, "positive": pos, "negative": neg,
                 "neutral": neu, "unread": unread, "starred": starred,
                 "trending_companies": tc, "trending_industries": ti,
                 "last_refresh": datetime.datetime.now().strftime("%H:%M:%S")}
 
-    def get_daily_top_news(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """Returns today's top headlines by relevance score."""
+    def get_daily_top_news(self, limit: int = 10, user_name: str = "All") -> List[Dict[str, Any]]:
+        """Returns today's top headlines by relevance score, optionally filtered by user."""
         c = self._conn()
         today = datetime.datetime.now().strftime("%Y-%m-%d")
-        rows = c.execute("""
-            SELECT * FROM headlines
-            WHERE published_time >= ?
-            ORDER BY relevance_score DESC, published_time DESC
-            LIMIT ?
-        """, (today, limit)).fetchall()
+        sql = "SELECT * FROM headlines WHERE published_time >= ?"
+        params = [today]
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND company IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
+        sql += " ORDER BY relevance_score DESC, published_time DESC LIMIT ?"
+        params.append(limit)
+        rows = c.execute(sql, params).fetchall()
         return [self._row_to_dict(r) for r in rows]
 
-    def get_company_sentiments(self, days: int = 7) -> List[Dict[str, Any]]:
-        """Aggregates sentiment per company over the past N days."""
+    def get_company_sentiments(self, days: int = 7, user_name: str = "All") -> List[Dict[str, Any]]:
+        """Aggregates sentiment per company over the past N days, optionally filtered by user."""
         c = self._conn()
         cutoff = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
-        rows = c.execute("""
+        sql = """
             SELECT company,
                    COUNT(*) as total,
                    SUM(CASE WHEN COALESCE(user_sentiment, sentiment) IN ('Positive','Very Positive') THEN 1 ELSE 0 END) as positive,
@@ -873,10 +889,13 @@ class DatabaseManager:
                    AVG(relevance_score) as avg_score
             FROM headlines
             WHERE company != 'General' AND published_time >= ?
-            GROUP BY company
-            ORDER BY total DESC
-            LIMIT 20
-        """, (cutoff,)).fetchall()
+        """
+        params = [cutoff]
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND company IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
+        sql += " GROUP BY company ORDER BY total DESC LIMIT 20"
+        rows = c.execute(sql, params).fetchall()
 
         results = []
         for r in rows:
@@ -894,16 +913,20 @@ class DatabaseManager:
             })
         return results
 
-    def get_tag_summary(self) -> List[Dict[str, Any]]:
-        """Returns headline counts per event category for the dashboard tag cloud."""
+    def get_tag_summary(self, user_name: str = "All") -> List[Dict[str, Any]]:
+        """Returns headline counts per event category for the dashboard tag cloud, optionally filtered by user."""
         c = self._conn()
-        rows = c.execute("""
+        sql = """
             SELECT event_category, COUNT(*) as count
             FROM headlines
             WHERE event_category != 'Neutral' AND event_category != ''
-            GROUP BY event_category
-            ORDER BY count DESC
-        """).fetchall()
+        """
+        params = []
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND company IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
+        sql += " GROUP BY event_category ORDER BY count DESC"
+        rows = c.execute(sql, params).fetchall()
         return [{"tag": r["event_category"], "count": r["count"]} for r in rows]
 
     def export_tagged_data(self) -> List[Dict[str, Any]]:
@@ -1712,10 +1735,23 @@ class DatabaseManager:
         return {"headlines": headlines, "total_docs": len(headlines)}
 
     # -----------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     # Distinct values for filter dropdowns
     # -----------------------------------------------------------------------
-    def get_distinct_companies(self) -> List[str]:
-        rows = self._conn().execute("SELECT DISTINCT company FROM headlines WHERE company != 'General' ORDER BY company").fetchall()
+    def get_distinct_companies(self, user_name: str = "All") -> List[str]:
+        c = self._conn()
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            rows = c.execute("""
+                SELECT DISTINCT e.company_name as company
+                FROM portfolio p
+                JOIN entities e ON p.entity_id = e.id
+                JOIN users u ON p.user_id = u.id
+                WHERE LOWER(u.name) = LOWER(?) AND e.company_name != 'General'
+                ORDER BY company
+            """, (user_name.strip(),)).fetchall()
+            if rows:
+                return [r["company"] for r in rows]
+        rows = c.execute("SELECT DISTINCT company FROM headlines WHERE company != 'General' ORDER BY company").fetchall()
         return [r["company"] for r in rows]
 
     def get_distinct_industries(self) -> List[str]:
@@ -1732,9 +1768,12 @@ class DatabaseManager:
     # -----------------------------------------------------------------------
     # Earnings Tracker CRUD
     # -----------------------------------------------------------------------
-    def get_earnings_calendar(self, company: str = None, quarter: str = None, status: str = None) -> List[Dict[str, Any]]:
+    def get_earnings_calendar(self, company: str = None, quarter: str = None, status: str = None, user_name: str = "All") -> List[Dict[str, Any]]:
         sql = "SELECT * FROM earnings_calendar WHERE 1=1"
         params = []
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND company_name IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
         if company and company != "All":
             sql += " AND company_name = ?"
             params.append(company)
@@ -1787,9 +1826,12 @@ class DatabaseManager:
             c.commit()
             return True
 
-    def get_earnings_results(self, company: str = None, quarter: str = None) -> List[Dict[str, Any]]:
+    def get_earnings_results(self, company: str = None, quarter: str = None, user_name: str = "All") -> List[Dict[str, Any]]:
         sql = "SELECT * FROM earnings_results WHERE 1=1"
         params = []
+        if user_name and user_name.strip() and user_name.strip().lower() != "all":
+            sql += " AND company_name IN (SELECT e.company_name FROM portfolio p JOIN entities e ON p.entity_id = e.id JOIN users u ON p.user_id = u.id WHERE LOWER(u.name) = LOWER(?))"
+            params.append(user_name.strip())
         if company and company != "All":
             sql += " AND company_name = ?"
             params.append(company)

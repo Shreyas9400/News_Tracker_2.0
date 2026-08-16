@@ -635,6 +635,14 @@ a.headline-link:hover { color: var(--text-accent); }
     <h1><span class="terminal-sub">NEWS INTELLIGENCE TERMINAL</span> <span class="header-tag">INSTITUTIONAL</span></h1>
   </div>
   <div class="header-actions">
+    <!-- Global User Portfolio View Switcher -->
+    <div style="display:flex;align-items:center;gap:6px;background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:var(--radius-xs);border:1px solid rgba(255,255,255,0.25);">
+      <span style="font-size:11.5px;font-weight:700;color:#FFFFFF;display:inline-flex;align-items:center;gap:4px;">👤 User View:</span>
+      <select id="globalUserFilter" onchange="onGlobalUserChange(this.value)" style="padding:4px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.4);background:#1F2022;color:#FFFFFF;font-size:11.5px;font-weight:700;cursor:pointer;">
+        <option value="All">All Users (Consolidated)</option>
+      </select>
+    </div>
+
     <!-- Theme Toggle Button -->
     <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Switch Light/Dark Mode">
       <span id="themeToggleIcon">☀️</span> <span id="themeToggleText">Light Mode</span>
@@ -663,6 +671,20 @@ a.headline-link:hover { color: var(--text-accent); }
 
   <!-- ============ DASHBOARD TAB ============ -->
   <div id="tab-dashboard" class="tab-content active">
+    <!-- Dashboard User Filter Control Banner -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);padding:12px 18px;border-radius:var(--radius);flex-wrap:wrap;gap:12px;box-shadow:var(--shadow-card);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:14px;font-weight:800;color:var(--text-primary);">📊 Executive Intelligence Overview</span>
+        <span id="dashboardActiveUserBadge" style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:rgba(56,189,248,0.15);color:var(--accent-blue);border:1px solid rgba(56,189,248,0.3);">All Portfolios</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <label for="dashboardUserFilter" style="font-size:12px;font-weight:700;color:var(--text-secondary);">👤 Filter by User:</label>
+        <select id="dashboardUserFilter" onchange="onGlobalUserChange(this.value)" style="padding:6px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-bright);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;font-weight:700;cursor:pointer;min-width:210px;">
+          <option value="All">All Users (Consolidated)</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Metric Cards (Standard stats use White, Cyan, Yellow, Green; Red strictly for Negative Sentiment) -->
     <div class="cards" id="metricsCards"></div>
 
@@ -1705,6 +1727,7 @@ function toggleAllAccordionSections() {
 }
 
 // =========================================================================
+// =========================================================================
 // GLOBAL STATE & CACHING
 // =========================================================================
 const API = '';
@@ -1719,6 +1742,82 @@ let activeTaxonomyCategory = 'All';
 let currentNewsFilterType = 'All';
 let currentPage = 1;
 let debounceTimer = null;
+let currentAppUser = localStorage.getItem('mufg_active_user') || 'All';
+let registeredUsersList = [];
+
+// Global User Portfolio Synchronization
+async function loadGlobalUsers() {
+  try {
+    const users = await api('/api/portfolio/users') || [];
+    registeredUsersList = Array.isArray(users) ? users : [];
+    
+    let opts = '<option value="All">👥 All Users (Consolidated)</option>';
+    registeredUsersList.forEach(u => {
+      const uName = typeof u === 'object' ? u.name : u;
+      const uCount = typeof u === 'object' && u.entity_count !== undefined ? ` (${u.entity_count} entities)` : '';
+      opts += `<option value="${esc(uName)}">👤 ${esc(uName)}${uCount}</option>`;
+    });
+
+    ['globalUserFilter', 'dashboardUserFilter', 'portfolioUserFilter'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.innerHTML = opts;
+        el.value = currentAppUser;
+      }
+    });
+
+    updateActiveUserBadge();
+  } catch(e) {
+    console.error('Error loading global users:', e);
+  }
+}
+
+function updateActiveUserBadge() {
+  const b = document.getElementById('dashboardActiveUserBadge');
+  if (b) {
+    if (currentAppUser === 'All') {
+      b.textContent = 'Consolidated (All Portfolios)';
+      b.style.background = 'rgba(56,189,248,0.15)';
+      b.style.color = 'var(--accent-blue)';
+      b.style.borderColor = 'rgba(56,189,248,0.3)';
+    } else {
+      b.textContent = `👤 ${currentAppUser}'s Active Watchlist`;
+      b.style.background = 'rgba(52,211,153,0.15)';
+      b.style.color = 'var(--accent-green)';
+      b.style.borderColor = 'rgba(52,211,153,0.3)';
+    }
+  }
+}
+
+async function onGlobalUserChange(userName) {
+  currentAppUser = userName || 'All';
+  localStorage.setItem('mufg_active_user', currentAppUser);
+
+  // Sync all user selector dropdowns
+  ['globalUserFilter', 'dashboardUserFilter', 'portfolioUserFilter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.value !== currentAppUser) el.value = currentAppUser;
+  });
+
+  updateActiveUserBadge();
+
+  // Reload the active tab and cached filter companies
+  const activeTab = document.querySelector('.tab-content.active');
+  const tabId = activeTab ? activeTab.id : 'tab-dashboard';
+
+  if (tabId === 'tab-dashboard') {
+    loadDashboard();
+  } else if (tabId === 'tab-news') {
+    currentPage = 1;
+    await loadFilterDropdowns();
+    loadNews();
+  } else if (tabId === 'tab-earnings') {
+    loadEarningsTab();
+  } else if (tabId === 'tab-portfolio') {
+    currentPortfolioUser = currentAppUser;
+    loadPortfolio();
+  }
+}
 
 // Lazy Loader & In-Memory Cache for Master Industries
 async function getCachedIndustries(forceRefresh = false) {
@@ -1920,8 +2019,12 @@ function clearAllFilters() {
 // DASHBOARD
 // =========================================================================
 async function loadDashboard() {
+  const uParam = encodeURIComponent(currentAppUser);
   const [d, daily, sentiments, tags] = await Promise.all([
-    api('/api/dashboard'), api('/api/dashboard/daily'), api('/api/dashboard/company_sentiments'), api('/api/dashboard/tag_summary')
+    api(`/api/dashboard?user=${uParam}`),
+    api(`/api/dashboard/daily?user=${uParam}`),
+    api(`/api/dashboard/company_sentiments?user=${uParam}`),
+    api(`/api/dashboard/tag_summary?user=${uParam}`)
   ]);
   
   // Metrics Cards with CTAs (No red font for standard stats; red ONLY for negative sentiment)
@@ -2029,12 +2132,26 @@ function loadTaxonomyCategory(cat) {
 // NEWS TERMINAL (Paginated + Filters)
 // =========================================================================
 async function loadFilterDropdowns() {
+  const uParam = encodeURIComponent(currentAppUser);
   const [companies, industries, domains] = await Promise.all([
-    api('/api/filters/companies'), api('/api/filters/industries'), api('/api/filters/domains')
+    api(`/api/filters/companies?user=${uParam}`),
+    api('/api/filters/industries'),
+    api('/api/filters/domains')
   ]);
-  const cs = document.getElementById('companyFilter'); cs.innerHTML = '<option value="All">All Companies</option>' + companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  const is = document.getElementById('industryFilter'); is.innerHTML = '<option value="All">All Industries</option>' + industries.map(i => `<option value="${esc(i)}">${esc(i)}</option>`).join('');
-  const ds = document.getElementById('domainFilter'); ds.innerHTML = '<option value="All">All Domains</option>' + domains.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  const cs = document.getElementById('companyFilter');
+  if (cs) {
+    const prev = cs.value;
+    cs.innerHTML = '<option value="All">All Companies</option>' + companies.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (companies.includes(prev)) cs.value = prev;
+  }
+  const is = document.getElementById('industryFilter');
+  if (is) {
+    is.innerHTML = '<option value="All">All Industries</option>' + industries.map(i => `<option value="${esc(i)}">${esc(i)}</option>`).join('');
+  }
+  const ds = document.getElementById('domainFilter');
+  if (ds) {
+    ds.innerHTML = '<option value="All">All Domains</option>' + domains.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+  }
 }
 
 function debounceLoadNews() { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { currentPage = 1; loadNews(); }, 300); }
@@ -2059,6 +2176,7 @@ async function loadNews(page) {
   if (comp !== 'All') activeCount++;
   if (dom !== 'All') activeCount++;
   if (currentNewsFilterType !== 'All') activeCount++;
+  if (currentAppUser !== 'All') activeCount++;
   const badge = document.getElementById('filterCountBadge');
   if (badge) {
     badge.textContent = activeCount > 0 ? `${activeCount} Active Filter${activeCount>1?'s':''}` : 'All News';
@@ -2067,7 +2185,8 @@ async function loadNews(page) {
   const params = new URLSearchParams({
     page: currentPage, page_size: 50, q, sentiment: s, recency: r,
     industry: ind, company: comp, domain: dom,
-    date_from: df, date_to: dt, filter_type: currentNewsFilterType
+    date_from: df, date_to: dt, filter_type: currentNewsFilterType,
+    user: currentAppUser
   });
   newsData = await api('/api/headlines?' + params);
   renderNews();
@@ -2235,16 +2354,19 @@ async function confirmResetAllNews() {
 // =========================================================================
 async function loadEarningsTab() {
   const compFilter = document.getElementById('earnCompanyFilter');
-  if (compFilter && compFilter.options.length <= 1) {
-    const comps = await api('/api/filters/companies');
+  const uParam = encodeURIComponent(currentAppUser);
+  if (compFilter) {
+    const comps = await api(`/api/filters/companies?user=${uParam}`);
+    const prev = compFilter.value;
     compFilter.innerHTML = '<option value="All">All Companies</option>' + comps.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if (comps.includes(prev)) compFilter.value = prev;
   }
 
   const selectedComp = compFilter ? compFilter.value : 'All';
   const selectedStatus = document.getElementById('earnStatusFilter') ? document.getElementById('earnStatusFilter').value : 'All';
 
   // Load Calendar List View Table
-  const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}`);
+  const calendarEvents = await api(`/api/earnings/calendar?company=${encodeURIComponent(selectedComp)}&status=${encodeURIComponent(selectedStatus)}&user=${uParam}`);
   const calBody = document.getElementById('earningsCalendarTableBody');
 
   if (!calendarEvents || calendarEvents.length === 0) {
@@ -2273,7 +2395,7 @@ async function loadEarningsTab() {
   }
 
   // Load Financial Results List View Table
-  const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}`);
+  const results = await api(`/api/earnings/results?company=${encodeURIComponent(selectedComp)}&user=${uParam}`);
   const resBody = document.getElementById('earningsResultsTableBody');
 
   if (!results || results.length === 0) {
@@ -3396,6 +3518,7 @@ setInterval(() => {
 
 // Initial load
 Promise.all([
+  loadGlobalUsers(),
   loadDashboard(),
   getCachedIndustries()
 ]);
