@@ -2445,41 +2445,21 @@ async function triggerEarningsSweep() {
 // =========================================================================
 // MULTI-USER PORTFOLIO & EXCEL WATCHLIST MANAGEMENT (3-TIER ARCHITECTURE)
 // =========================================================================
-let currentPortfolioUser = 'All';
-let registeredUsersList = [];
+let currentPortfolioUser = currentAppUser || 'All';
 let parsedExcelRows = [];
 
 async function loadPortfolioUsers() {
-  try {
-    const users = await api('/api/portfolio/users');
-    registeredUsersList = Array.isArray(users) ? users : [];
-    const userSel = document.getElementById('portfolioUserFilter');
-    if (!userSel) return;
-    const prevVal = userSel.value || currentPortfolioUser;
-    
-    let html = '<option value="All">👥 All Users</option>';
-    registeredUsersList.forEach(u => {
-      const uName = typeof u === 'object' ? u.name : u;
-      const uCount = typeof u === 'object' && u.entity_count !== undefined ? ` (${u.entity_count})` : '';
-      html += `<option value="${esc(uName)}" ${uName === prevVal ? 'selected' : ''}>👤 ${esc(uName)}${uCount}</option>`;
-    });
-    userSel.innerHTML = html;
-    if (prevVal && registeredUsersList.some(u => (typeof u === 'object' ? u.name : u) === prevVal)) {
-      userSel.value = prevVal;
-    }
-  } catch(e) {
-    console.error("Error loading portfolio users:", e);
-  }
+  await loadGlobalUsers();
 }
 
 function onPortfolioUserFilterChange() {
   const userSel = document.getElementById('portfolioUserFilter');
-  currentPortfolioUser = userSel ? userSel.value : 'All';
+  const selectedUser = userSel ? userSel.value : 'All';
   const pUserInp = document.getElementById('pUser');
-  if (pUserInp && currentPortfolioUser !== 'All') {
-    pUserInp.value = currentPortfolioUser;
+  if (pUserInp && selectedUser !== 'All') {
+    pUserInp.value = selectedUser;
   }
-  loadPortfolio();
+  onGlobalUserChange(selectedUser);
 }
 
 async function loadPortfolio() {
